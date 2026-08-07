@@ -322,7 +322,17 @@ function ConfigTab() {
 
         <SubHeading>2. Enable the Drive API</SubHeading>
         <div className="space-y-3 pt-1">
-          <Step n={1}><strong>APIs &amp; Services → Library</strong> → search <strong>Google Drive API</strong> → <strong>Enable</strong>.</Step>
+          <Step n={1}>
+            <strong>APIs &amp; Services → Library</strong> → search <strong>Google Drive API</strong> →{' '}
+            <strong>Enable</strong>.
+            <br />
+            <span className="text-gray-500 dark:text-gray-400">
+              If you skip this and connect anyway, uploads will fail with{' '}
+              <em>"Google Drive API has not been used in project … or it is disabled"</em>. Fix it by opening the
+              link in that error (or repeating this step for the same project), then wait 1–2 minutes for it to
+              take effect before uploading again.
+            </span>
+          </Step>
         </div>
 
         <SubHeading>3. Configure the OAuth consent screen</SubHeading>
