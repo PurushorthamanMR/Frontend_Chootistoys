@@ -2,6 +2,7 @@ const SIZE_CLASSES = {
   sm: 'w-4 h-4 border-2',
   md: 'w-6 h-6 border-2',
   lg: 'w-9 h-9 border-[3px]',
+  xl: 'w-14 h-14 border-4',
 };
 
 export default function Spinner({ size = 'md', className = '' }) {

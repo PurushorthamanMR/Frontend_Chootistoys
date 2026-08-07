@@ -353,7 +353,7 @@ function ConfigTab() {
             Under <strong>Authorized redirect URIs</strong>, paste the Redirect URI shown in{' '}
             <strong>Settings → Google Drive</strong> (it looks like{' '}
             <Code>http://localhost:5000/api/settings/drive/oauth/callback</Code>). If you deploy later, set{' '}
-            <Code>PUBLIC_BACKEND_URL</Code> in <Code>backend/.env</Code> and add that callback URL too.
+            <Code>BACKEND_URL</Code> in <Code>backend/.env</Code> and add that callback URL too.
           </Step>
           <Step n={3}>
             <strong>Create</strong>, then copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.

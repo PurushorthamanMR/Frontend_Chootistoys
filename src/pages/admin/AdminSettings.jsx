@@ -393,12 +393,20 @@ export default function AdminSettings() {
     try {
       // Persist Client ID / Secret / Folder ID first so OAuth can use them.
       if (editing) {
+        const confirmed = await confirmAction({
+          title: 'Save changes before connecting?',
+          text: 'Client ID, Secret and Folder ID must be saved before Google sign-in can use them.',
+          confirmText: 'Save & Connect',
+        });
+        if (!confirmed) return;
         await api.put('/settings', {
           drive_client_id: driveForm.drive_client_id,
           drive_client_secret: driveForm.drive_client_secret,
           drive_folder_id: driveForm.drive_folder_id,
         });
+        await refreshSettings();
         await refreshSetupStatus();
+        setEditing(false);
       }
       const { data } = await api.get('/settings/drive/oauth/start');
       window.location.href = data.url;

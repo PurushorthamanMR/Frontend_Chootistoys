@@ -105,6 +105,11 @@ export default function Login() {
           Apply as a Seller
         </Link>
       </p>
+      {import.meta.env.VITE_APP_VERSION && (
+        <p className="text-xs text-center mt-4 text-gray-400 dark:text-neutral-600">
+          v{import.meta.env.VITE_APP_VERSION}
+        </p>
+      )}
     </>
   );
 }

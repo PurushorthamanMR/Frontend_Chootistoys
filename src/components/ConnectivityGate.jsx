@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import ConnectionBroken from '../pages/ConnectionBroken';
+import ReconnectingOverlay from './ReconnectingOverlay';
+
+const HEALTH_URL = `${(import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')}/health`;
+const POLL_INTERVAL_MS = 3000;
 
 export default function ConnectivityGate({ children }) {
   const [broken, setBroken] = useState(!navigator.onLine);
@@ -21,9 +24,34 @@ export default function ConnectivityGate({ children }) {
     };
   }, []);
 
-  if (broken) {
-    return <ConnectionBroken onRetry={() => window.location.reload()} />;
-  }
+  // While broken, quietly ping the API in the background so the overlay
+  // clears itself the moment the server (e.g. mid-restart after a Settings
+  // save) comes back - no manual reload needed.
+  useEffect(() => {
+    if (!broken) return;
 
-  return children;
+    let cancelled = false;
+    async function poll() {
+      try {
+        const res = await fetch(HEALTH_URL, { cache: 'no-store' });
+        if (!cancelled && res.ok) setBroken(false);
+      } catch {
+        // still down - keep polling
+      }
+    }
+
+    poll();
+    const id = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [broken]);
+
+  return (
+    <>
+      {children}
+      {broken && <ReconnectingOverlay onRetry={() => window.location.reload()} />}
+    </>
+  );
 }
