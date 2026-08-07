@@ -2,7 +2,8 @@ import axios from 'axios';
 import { getInFlight, setInFlight } from '../lib/apiCache';
 
 const api = axios.create({
-  baseURL: '/api',
+  // Dev: vite proxy → /api. Prod: set VITE_API_BASE_URL (e.g. https://backend.chootistoys.com/api)
+  baseURL: (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, ''),
 });
 
 api.interceptors.request.use((config) => {
