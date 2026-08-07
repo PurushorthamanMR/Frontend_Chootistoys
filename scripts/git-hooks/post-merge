@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs automatically after a successful `git pull` / merge.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "[post-merge] Installing deps..."
+npm install
+
+echo "[post-merge] Building frontend..."
+npm run build
+
+echo "[post-merge] Done. Output: $ROOT/dist"

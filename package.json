@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start_front": "vite build && vite preview --host --port 5173"
+    "start_front": "vite build && vite preview --host --port 5173",
+    "deploy": "bash scripts/deploy.sh",
+    "install-hooks": "bash scripts/install-git-hooks.sh"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
