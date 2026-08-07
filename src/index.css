@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-wa-green: #25d366;
+  --color-wa-green-dark: #1da851;
+  --color-wa-teal: #075e54;
+  --color-wa-teal-light: #128c7e;
+  --font-sans: 'Archivo Narrow', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+button:not(:disabled),
+input[type='button']:not(:disabled),
+input[type='submit']:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+button:disabled,
+input[type='button']:disabled,
+input[type='submit']:disabled {
+  cursor: not-allowed;
+}
+
+/* Hides a native scrollbar so <CustomScrollbar> (src/components/CustomScrollbar.jsx)
+   can draw its own track/thumb instead - Chromium's Fluent scrollbar
+   redesign on Windows draws its own arrow buttons that ignore
+   ::-webkit-scrollbar-button entirely, so there is no CSS-only way to
+   remove them from a native scrollbar. Applied to the whole page (html)
+   and to any element opting in via .scrollbar-none (e.g. the admin
+   sidebar's nav list). */
+html,
+.scrollbar-none {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
