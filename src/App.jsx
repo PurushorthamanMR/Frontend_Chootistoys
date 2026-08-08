@@ -27,6 +27,7 @@ import WholesaleView from './pages/WholesaleView';
 import TermsConditions from './pages/TermsConditions';
 import ReturnPolicy from './pages/ReturnPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import AboutUs from './pages/AboutUs';
 import { PrivateRoute, AdminRoute } from './components/RouteGuards';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -70,7 +71,7 @@ const KNOWN_PATHS = [
   '/', '/products', '/products/:slug', '/categories', '/blogs', '/cart',
   '/login', '/seller-login', '/register', '/apply-seller', '/forgot-password',
   '/checkout', '/my-orders', '/profile', '/wishlist',
-  '/terms', '/return-policy', '/privacy-policy',
+  '/terms', '/return-policy', '/privacy-policy', '/about-us',
   '/admin', '/admin/dashboard', '/admin/products', '/admin/categories', '/admin/subcategories', '/admin/orders',
   '/admin/low-stock', '/admin/blogs', '/admin/offers', '/admin/banners', '/admin/users', '/admin/customers',
   '/admin/settings', '/admin/documentation',
@@ -140,6 +141,7 @@ function App() {
               <Route path="/terms" element={<TermsConditions />} />
               <Route path="/return-policy" element={<ReturnPolicy />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/about-us" element={<AboutUs />} />
               <Route element={<AuthLayout />}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/seller-login" element={<SellerLogin />} />

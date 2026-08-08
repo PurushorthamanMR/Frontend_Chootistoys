@@ -24,6 +24,7 @@ import {
   faFileContract,
   faArrowRotateLeft,
   faShieldHalved,
+  faCircleInfo,
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -399,6 +400,7 @@ export default function Navbar() {
             <NavLink to="/blogs" className={desktopRow2LinkClass}>Blogs</NavLink>
             <NavLink to="/products" className={desktopRow2LinkClass}>All Product</NavLink>
             <NavLink to="/categories" className={desktopRow2LinkClass}>All Categories</NavLink>
+            <NavLink to="/about-us" className={desktopRow2LinkClass}>About Us</NavLink>
           </nav>
           <Link to="/cart" className="flex items-center gap-2 hover:opacity-80">
             <FontAwesomeIcon icon={faCartShopping} />
@@ -478,6 +480,7 @@ export default function Navbar() {
                 <DrawerItem icon={<FontAwesomeIcon icon={faNewspaper} />} label="Blogs" onClick={() => go('/blogs')} />
                 <DrawerItem icon={<FontAwesomeIcon icon={faShapes} />} label="All Product" onClick={() => go('/products')} />
                 <DrawerItem icon={<FontAwesomeIcon icon={faLayerGroup} />} label="All Categories" onClick={() => go('/categories')} />
+                <DrawerItem icon={<FontAwesomeIcon icon={faCircleInfo} />} label="About Us" onClick={() => go('/about-us')} />
 
                 {user && (
                   <>

@@ -13,6 +13,7 @@ import {
   faEnvelope,
   faBook,
   faDatabase,
+  faCircleInfo,
 } from '@fortawesome/free-solid-svg-icons';
 import { faGoogleDrive } from '@fortawesome/free-brands-svg-icons';
 import api from '../../api/client';
@@ -32,6 +33,7 @@ export const SETTINGS_SECTIONS = [
   { key: 'general', label: 'General', icon: faStore },
   { key: 'contact', label: 'Contact', icon: faPhone },
   { key: 'appearance', label: 'Appearance', icon: faPalette },
+  { key: 'about', label: 'About Us', icon: faCircleInfo },
   { key: 'legal', label: 'Legal Pages', icon: faFileContract },
   { key: 'drive', label: 'Google Drive', icon: faGoogleDrive },
   { key: 'email', label: 'Email (EmailJS)', icon: faEnvelope },
@@ -170,7 +172,8 @@ export default function AdminSettings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSection = searchParams.get('tab');
   const activeSection = sections.some((s) => s.key === requestedSection) ? requestedSection : 'general';
-  const [exporting, setExporting] = useState(false);
+  const [exportingStructure, setExportingStructure] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -442,6 +445,11 @@ export default function AdminSettings() {
     });
   }
 
+  function handleAboutSubmit(e) {
+    e.preventDefault();
+    saveFields({ about_content: form.about_content });
+  }
+
   const wholesaleLink = wholesaleToken ? `${window.location.origin}/wholesale-view/${wholesaleToken}` : '';
 
   async function copyWholesaleLink() {
@@ -469,27 +477,43 @@ export default function AdminSettings() {
     }
   }
 
-  async function handleExport() {
+  async function handleExportStructure() {
     const confirmed = await confirmAction({
-      title: 'Export the database?',
-      text: 'Downloads two .sql files: one with just the table structure, one with just the data.',
+      title: 'Export the database structure?',
+      text: 'Downloads a .sql file with just the table structure (CREATE TABLE statements, no data).',
       confirmText: 'Export',
     });
     if (!confirmed) return;
 
-    setExporting(true);
+    setExportingStructure(true);
     try {
-      const [structureRes, dataRes] = await Promise.all([
-        api.get('/settings/export/structure', { responseType: 'blob' }),
-        api.get('/settings/export/data', { responseType: 'blob' }),
-      ]);
+      const structureRes = await api.get('/settings/export/structure', { responseType: 'blob' });
       downloadBlob(structureRes, 'structure.sql');
-      downloadBlob(dataRes, 'data.sql');
-      successAlert('Export ready', 'Both files have started downloading.');
+      successAlert('Export ready', 'The structure file has started downloading.');
     } catch (err) {
-      errorAlert('Export failed', err.response?.data?.message || 'Failed to export the database.');
+      errorAlert('Export failed', err.response?.data?.message || 'Failed to export the database structure.');
     } finally {
-      setExporting(false);
+      setExportingStructure(false);
+    }
+  }
+
+  async function handleExportData() {
+    const confirmed = await confirmAction({
+      title: 'Export the database data?',
+      text: 'Downloads a .sql file with just the data (INSERT statements, no schema).',
+      confirmText: 'Export',
+    });
+    if (!confirmed) return;
+
+    setExportingData(true);
+    try {
+      const dataRes = await api.get('/settings/export/data', { responseType: 'blob' });
+      downloadBlob(dataRes, 'data.sql');
+      successAlert('Export ready', 'The data file has started downloading.');
+    } catch (err) {
+      errorAlert('Export failed', err.response?.data?.message || 'Failed to export the database data.');
+    } finally {
+      setExportingData(false);
     }
   }
 
@@ -731,6 +755,28 @@ export default function AdminSettings() {
                     }
                   />
                 )}
+              </SectionCard>
+            </form>
+          )}
+
+          {activeSection === 'about' && (
+            <form id="about-form" onSubmit={handleAboutSubmit}>
+              <SectionCard
+                title="About Us"
+                description="Shown on the public About Us page (linked from the main navigation)."
+                headerAction={!editing && <EditButton onClick={() => startEdit(form)} />}
+              >
+                <div>
+                  <Label>About Us</Label>
+                  <textarea
+                    rows={10}
+                    disabled={!editing}
+                    value={form.about_content || ''}
+                    onChange={(e) => setForm({ ...form, about_content: e.target.value })}
+                    className={`${inputClass} font-normal text-sm leading-relaxed resize-y disabled:opacity-60`}
+                  />
+                </div>
+                {editing && <FloatingSaveCancel saving={saving} onCancel={() => cancelEdit(setForm)} formId="about-form" />}
               </SectionCard>
             </form>
           )}
@@ -990,14 +1036,24 @@ export default function AdminSettings() {
               title="Database Export"
               description="Downloads two files: one with just the table structure (CREATE TABLE statements, no data) and one with just the data (INSERT statements, no schema) - the same split phpMyAdmin offers. Requires mysqldump to be installed on the backend server."
             >
-              <button
-                type="button"
-                onClick={handleExport}
-                disabled={exporting}
-                className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
-              >
-                {exporting ? 'Exporting...' : 'Export'}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleExportStructure}
+                  disabled={exportingStructure}
+                  className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
+                >
+                  {exportingStructure ? 'Exporting...' : 'Export Structure'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportData}
+                  disabled={exportingData}
+                  className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
+                >
+                  {exportingData ? 'Exporting...' : 'Export Data'}
+                </button>
+              </div>
             </SectionCard>
           )}
     </div>
