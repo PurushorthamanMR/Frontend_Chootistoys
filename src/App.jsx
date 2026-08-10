@@ -28,7 +28,11 @@ import TermsConditions from './pages/TermsConditions';
 import ReturnPolicy from './pages/ReturnPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AboutUs from './pages/AboutUs';
-import { PrivateRoute, AdminRoute } from './components/RouteGuards';
+import { PrivateRoute, AdminRoute, PosRoute } from './components/RouteGuards';
+import PosLayout from './pages/pos/PosLayout';
+import Pos from './pages/pos/Pos';
+import PosSalesHistory from './pages/pos/PosSalesHistory';
+import PosDailySummary from './pages/pos/PosDailySummary';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -75,6 +79,7 @@ const KNOWN_PATHS = [
   '/admin', '/admin/dashboard', '/admin/products', '/admin/categories', '/admin/subcategories', '/admin/orders',
   '/admin/low-stock', '/admin/blogs', '/admin/offers', '/admin/banners', '/admin/users', '/admin/customers',
   '/admin/settings', '/admin/documentation',
+  '/pos', '/pos/sales-history', '/pos/daily-summary',
 ];
 
 const AUTH_PATHS = ['/login', '/register', '/apply-seller', '/seller-login', '/forgot-password'];
@@ -86,6 +91,7 @@ function App() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isAuthRoute = AUTH_PATHS.includes(location.pathname);
   const isWholesaleRoute = location.pathname.startsWith('/wholesale-view/');
+  const isPosRoute = location.pathname.startsWith('/pos');
   const isHomeRoute = location.pathname === '/';
 
   // Pages should only be reached by clicking something inside the running app.
@@ -116,6 +122,7 @@ function App() {
 
     if (location.pathname.startsWith('/admin')) return;
     if (location.pathname.startsWith('/wholesale-view/')) return;
+    if (location.pathname.startsWith('/pos')) return;
 
     const isKnownPath = KNOWN_PATHS.some((pattern) => matchPath(pattern, location.pathname));
     if (isKnownPath && location.pathname !== '/') {
@@ -223,6 +230,18 @@ function App() {
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="documentation" element={<AdminDocumentation />} />
               </Route>
+              <Route
+                path="/pos"
+                element={
+                  <PosRoute>
+                    <PosLayout />
+                  </PosRoute>
+                }
+              >
+                <Route index element={<Pos />} />
+                <Route path="sales-history" element={<PosSalesHistory />} />
+                <Route path="daily-summary" element={<PosDailySummary />} />
+              </Route>
               <Route path="/wholesale-view/:token" element={<WholesaleView />} />
               <Route path="*" element={<PageNotFound />} />
     </Routes>
@@ -231,9 +250,9 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-black transition-colors">
       <CustomScrollbar />
-      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && <Navbar />}
-      <main className={isAdminRoute || isAuthRoute || isWholesaleRoute ? 'flex-1' : 'flex-1 pb-32 lg:pb-24'}>
-        {isAdminRoute ? (
+      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && !isPosRoute && <Navbar />}
+      <main className={isAdminRoute || isAuthRoute || isWholesaleRoute || isPosRoute ? 'flex-1' : 'flex-1 pb-32 lg:pb-24'}>
+        {isAdminRoute || isPosRoute ? (
           routesElement
         ) : (
           <AnimatePresence mode="wait">
@@ -249,10 +268,10 @@ function App() {
           </AnimatePresence>
         )}
       </main>
-      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && <FloatingOrderBar />}
+      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && !isPosRoute && <FloatingOrderBar />}
       {isHomeRoute && <FloatingWhatsApp />}
-      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && <MobileFooterNav />}
-      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && <Footer />}
+      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && !isPosRoute && <MobileFooterNav />}
+      {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && !isPosRoute && <Footer />}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   faXmark,
   faBars,
   faGauge,
+  faCashRegister,
   faBox,
   faFolderTree,
   faSitemap,
@@ -83,7 +84,10 @@ function buildSections({ pendingCount, lowStockCount, pendingUsersCount, canMana
     },
     {
       label: 'Sales',
-      items: [{ to: '/admin/orders', label: 'Orders', icon: faReceipt, badge: pendingCount }],
+      items: [
+        { to: '/admin/orders', label: 'Orders', icon: faReceipt, badge: pendingCount },
+        { to: '/pos', label: 'POS', icon: faCashRegister },
+      ],
     },
     {
       label: 'Content',

@@ -21,3 +21,10 @@ export function SuperAdminRoute({ children }) {
   if (!user || user.role !== 'SuperAdmin') return <Navigate to="/login" replace />;
   return children;
 }
+
+export function PosRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || !['Staff', 'Admin', 'SuperAdmin'].includes(user.role)) return <Navigate to="/login" replace />;
+  return children;
+}

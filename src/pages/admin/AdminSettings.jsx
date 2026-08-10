@@ -15,6 +15,7 @@ import {
   faDatabase,
   faCircleInfo,
   faArrowsUpDownLeftRight,
+  faCashRegister,
 } from '@fortawesome/free-solid-svg-icons';
 import { faGoogleDrive } from '@fortawesome/free-brands-svg-icons';
 import api from '../../api/client';
@@ -43,12 +44,16 @@ export const SETTINGS_SECTIONS = [
   { key: 'wholesale', label: 'Wholesale Link', icon: faLink },
 ];
 
-// Database Export is SuperAdmin-only, so it's appended conditionally rather
-// than living in the static list - both this page and AdminSidebar's Settings
-// sub-nav call this so they never fall out of sync with each other.
+// Database Export and Point of Sale are SuperAdmin-only, so they're appended
+// conditionally rather than living in the static list - both this page and
+// AdminSidebar's Settings sub-nav call this so they never fall out of sync.
 export function getSettingsSections(isSuperAdmin) {
   return isSuperAdmin
-    ? [...SETTINGS_SECTIONS, { key: 'export', label: 'Database Export', icon: faDatabase }]
+    ? [
+        ...SETTINGS_SECTIONS,
+        { key: 'pos', label: 'Point of Sale', icon: faCashRegister },
+        { key: 'export', label: 'Database Export', icon: faDatabase },
+      ]
     : SETTINGS_SECTIONS;
 }
 
@@ -335,6 +340,15 @@ export default function AdminSettings() {
   function handleContactSubmit(e) {
     e.preventDefault();
     saveFields({ whatsapp_number: form.whatsapp_number, address: form.address, email: form.email });
+  }
+
+  function handlePosSubmit(e) {
+    e.preventDefault();
+    saveFields({
+      pos_is_active: form.pos_is_active,
+      pos_tax_percent: form.pos_tax_percent,
+      pos_service_charge_percent: form.pos_service_charge_percent,
+    });
   }
 
   const lightColorInvalid = !!form && !HEX_COLOR_RE.test(form.theme_color_light);
@@ -1087,6 +1101,81 @@ export default function AdminSettings() {
                 {regenerating ? 'Regenerating...' : 'Regenerate Link'}
               </button>
             </SectionCard>
+          )}
+
+          {activeSection === 'pos' && isSuperAdmin && (
+            <form id="pos-form" onSubmit={handlePosSubmit}>
+              <SectionCard
+                title="Point of Sale"
+                description="Controls the in-store POS checkout used by Staff/cashier accounts. Turning this off blocks new POS shifts and sales - the online store is unaffected either way."
+                headerAction={
+                  !editing && (
+                    <EditButton
+                      onClick={() =>
+                        startEdit({
+                          pos_is_active: form.pos_is_active,
+                          pos_tax_percent: form.pos_tax_percent,
+                          pos_service_charge_percent: form.pos_service_charge_percent,
+                        })
+                      }
+                    />
+                  )
+                }
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>POS Enabled</Label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      When off, Staff cannot open a shift or take a POS sale.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!editing}
+                    onClick={() => setForm({ ...form, pos_is_active: form.pos_is_active ? 0 : 1 })}
+                    aria-pressed={!!form.pos_is_active}
+                    className={`shrink-0 w-12 h-7 rounded-full transition-colors disabled:opacity-60 ${
+                      form.pos_is_active ? 'bg-wa-green' : 'bg-gray-300 dark:bg-neutral-700'
+                    }`}
+                  >
+                    <span
+                      className={`block w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
+                        form.pos_is_active ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label hint="(default, cashier can override per sale)">Default Tax %</Label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      disabled={!editing}
+                      value={form.pos_tax_percent ?? 0}
+                      onChange={(e) => setForm({ ...form, pos_tax_percent: e.target.value })}
+                      className={`${inputClass} disabled:opacity-60`}
+                    />
+                  </div>
+                  <div>
+                    <Label hint="(default, cashier can override per sale)">Default Service Charge %</Label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      disabled={!editing}
+                      value={form.pos_service_charge_percent ?? 0}
+                      onChange={(e) => setForm({ ...form, pos_service_charge_percent: e.target.value })}
+                      className={`${inputClass} disabled:opacity-60`}
+                    />
+                  </div>
+                </div>
+                {editing && <FloatingSaveCancel saving={saving} onCancel={() => cancelEdit(setForm)} formId="pos-form" />}
+              </SectionCard>
+            </form>
           )}
 
           {activeSection === 'export' && isSuperAdmin && (

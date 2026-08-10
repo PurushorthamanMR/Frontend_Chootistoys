@@ -10,11 +10,15 @@ import { useDuplicateCheck } from '../../lib/useDuplicateCheck';
 import { isValidEmail } from '../../lib/validators';
 import UserForm from './forms/UserForm';
 import LoadingBlock from '../../components/LoadingBlock';
+import { useSettings } from '../../context/SettingsContext';
 
 const ROLE_LABELS = {
   Seller: 'Seller',
   Admin: 'Admin',
+  Staff: 'Staff',
 };
+
+const EMPTY_STAFF_FORM = { name: '', email: '', phone: '', password: '' };
 
 const STATUS_TABS = ['pending', 'approved', 'rejected'];
 
@@ -46,6 +50,8 @@ function StatusTabs({ status, onChange }) {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
+  const { settings } = useSettings();
+  const posEnabled = !!settings?.pos_is_active;
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +59,10 @@ export default function AdminUsers() {
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', shop_name: '', city: '' });
   const [editError, setEditError] = useState('');
+  const [addingStaff, setAddingStaff] = useState(false);
+  const [staffForm, setStaffForm] = useState(EMPTY_STAFF_FORM);
+  const [staffError, setStaffError] = useState('');
+  const [savingStaff, setSavingStaff] = useState(false);
 
   const emailInvalid = !!editForm.email && !isValidEmail(editForm.email);
   const emailStatus = useDuplicateCheck('/users/check', editForm.email, {
@@ -121,12 +131,107 @@ export default function AdminUsers() {
     }
   }
 
+  function openAddStaff() {
+    setStaffForm(EMPTY_STAFF_FORM);
+    setStaffError('');
+    setAddingStaff(true);
+  }
+
+  async function handleAddStaffSubmit(e) {
+    e.preventDefault();
+    setStaffError('');
+    setSavingStaff(true);
+    try {
+      await api.post('/users/staff', staffForm);
+      setAddingStaff(false);
+      if (statusTab === 'approved') load();
+    } catch (err) {
+      setStaffError(err.response?.data?.message || 'Failed to create staff account');
+    } finally {
+      setSavingStaff(false);
+    }
+  }
+
   if (loading) return <LoadingBlock className="py-16" />;
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Users</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Users</h2>
+        {/* POS must be switched on in Settings before new Staff/cashier
+            accounts can be created - matches the backend's own gate on
+            opening a shift/taking a sale, so this button doesn't offer an
+            action that would just sit unusable. */}
+        {posEnabled && (
+          <button
+            onClick={openAddStaff}
+            className="bg-wa-green hover:bg-wa-green-dark text-white font-semibold px-4 py-2 rounded-md"
+          >
+            + Add Staff
+          </button>
+        )}
+      </div>
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+
+      <Modal open={addingStaff} onClose={() => setAddingStaff(false)} title="Add Staff (POS cashier)">
+        <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 gap-3">
+          {staffError && <p className="text-red-600 text-sm">{staffError}</p>}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Name</label>
+            <input
+              required
+              value={staffForm.name}
+              onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Email</label>
+            <input
+              type="email"
+              required
+              value={staffForm.email}
+              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Phone (optional)</label>
+            <input
+              value={staffForm.phone}
+              onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={staffForm.password}
+              onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={savingStaff}
+              className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
+            >
+              {savingStaff ? 'Creating...' : 'Create Staff Account'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAddingStaff(false)}
+              className="px-4 py-2 rounded-md border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <StatusTabs status={statusTab} onChange={setStatusTab} />
 
