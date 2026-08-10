@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useUnsavedChanges } from '../../context/UnsavedChangesContext';
 import { useSetupStatus } from '../../context/SetupStatusContext';
+import { useSettings } from '../../context/SettingsContext';
 import { confirmAction } from '../../lib/alert';
 import api from '../../api/client';
 import CustomScrollbar from '../../components/CustomScrollbar';
@@ -68,7 +69,7 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-function buildSections({ pendingCount, lowStockCount, pendingUsersCount, canManageUsers }) {
+function buildSections({ pendingCount, lowStockCount, pendingUsersCount, canManageUsers, posEnabled }) {
   return [
     {
       items: [{ to: '/admin/dashboard', label: 'Dashboard', icon: faGauge }],
@@ -86,7 +87,7 @@ function buildSections({ pendingCount, lowStockCount, pendingUsersCount, canMana
       label: 'Sales',
       items: [
         { to: '/admin/orders', label: 'Orders', icon: faReceipt, badge: pendingCount },
-        { to: '/pos', label: 'POS', icon: faCashRegister },
+        ...(posEnabled ? [{ to: '/pos', label: 'POS', icon: faCashRegister }] : []),
       ],
     },
     {
@@ -217,6 +218,7 @@ function SidebarExpandableLink({ to, label, icon, children, onClick }) {
 
 export default function AdminSidebar() {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const isDesktop = useIsDesktop();
@@ -298,7 +300,7 @@ export default function AdminSidebar() {
 
   const sections = gatingActive
     ? []
-    : buildSections({ pendingCount, lowStockCount, pendingUsersCount, canManageUsers });
+    : buildSections({ pendingCount, lowStockCount, pendingUsersCount, canManageUsers, posEnabled: !!settings?.pos_is_active });
 
   const brand = (
     <Link

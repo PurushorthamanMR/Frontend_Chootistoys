@@ -23,11 +23,15 @@
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.19.0",
     "framer-motion": "^12.43.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
+    "react-simple-keyboard": "^3.8.256",
     "recharts": "^3.10.1",
-    "sweetalert2": "^11.26.25"
+    "sweetalert2": "^11.26.25",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

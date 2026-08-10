@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPrint, faFilePdf, faFileExcel } from '@fortawesome/free-solid-svg-icons';
 import api from '../../api/client';
 import LoadingBlock from '../../components/LoadingBlock';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { buildZReportHtml } from '../../lib/receiptTemplate';
+import { printHtml } from '../../lib/printHtml';
+import { exportZReportPdf, exportZReportExcel } from '../../lib/posExport';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -19,6 +25,7 @@ function StatCard({ label, value }) {
 
 export default function PosDailySummary() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { formatPrice } = useCurrency();
   const canSeeStaffBreakdown = ['Admin', 'SuperAdmin'].includes(user?.role);
   const [date, setDate] = useState(todayISO());
@@ -46,14 +53,53 @@ export default function PosDailySummary() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Daily Summary (Z-Report)</h2>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            disabled={!report}
+            onClick={() =>
+              printHtml(
+                buildZReportHtml({
+                  report,
+                  staffSales: canSeeStaffBreakdown ? staffSales : undefined,
+                  settings,
+                  formatPrice,
+                }),
+                `Z-Report ${date}`
+              )
+            }
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-wa-green hover:bg-wa-green-dark disabled:opacity-40 text-white"
+          >
+            <FontAwesomeIcon icon={faPrint} />
+            Print Z-Report
+          </button>
+          <button
+            type="button"
+            disabled={!report}
+            onClick={() => exportZReportPdf({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined, settings })}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
+          >
+            <FontAwesomeIcon icon={faFilePdf} />
+            Export PDF
+          </button>
+          <button
+            type="button"
+            disabled={!report}
+            onClick={() => exportZReportExcel({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined })}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
+          >
+            <FontAwesomeIcon icon={faFileExcel} />
+            Export Excel
+          </button>
+        </div>
       </div>
 
       {loading || !report ? (
@@ -65,6 +111,35 @@ export default function PosDailySummary() {
             <StatCard label="Transactions" value={report.transactionCount} />
             <StatCard label="Discounts Given" value={formatPrice(report.totalDiscount)} />
             <StatCard label="Voided Sales" value={report.voidedCount} />
+            <StatCard label="Returned Sales" value={report.returnedCount ?? 0} />
+            <StatCard label="Outstanding Advances" value={formatPrice(report.totalBalanceDue ?? 0)} />
+          </div>
+
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">Payment Method Breakdown</h3>
+          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-lg shadow dark:shadow-none overflow-x-auto mb-6">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-neutral-800 text-left text-gray-700 dark:text-gray-300">
+                <tr>
+                  <th className="p-3">Method</th>
+                  <th className="p-3">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(report.paymentBreakdown || []).map((row) => (
+                  <tr key={row.method} className="border-t border-gray-200 dark:border-neutral-800 text-gray-800 dark:text-gray-200">
+                    <td className="p-3 capitalize">{row.method}</td>
+                    <td className="p-3 font-semibold">{formatPrice(row.total)}</td>
+                  </tr>
+                ))}
+                {(!report.paymentBreakdown || report.paymentBreakdown.length === 0) && (
+                  <tr>
+                    <td colSpan={2} className="p-4 text-gray-500 dark:text-gray-400">
+                      No payments on this date.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
           <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">Shifts</h3>

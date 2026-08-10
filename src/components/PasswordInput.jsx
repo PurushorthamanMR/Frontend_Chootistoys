@@ -1,4 +1,6 @@
 import { useState, forwardRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faKeyboard } from '@fortawesome/free-solid-svg-icons';
 
 const EyeIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -14,7 +16,13 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-const PasswordInput = forwardRef(function PasswordInput({ className = '', ...props }, ref) {
+// `onKeyboardToggle` is opt-in - only screens that pass it (e.g. the
+// touchscreen POS Login page) get the extra icon, so every other usage of
+// this component (Register, Forgot Password, Profile, ...) is unchanged.
+const PasswordInput = forwardRef(function PasswordInput(
+  { className = '', onKeyboardToggle, keyboardActive = false, ...props },
+  ref
+) {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -22,9 +30,22 @@ const PasswordInput = forwardRef(function PasswordInput({ className = '', ...pro
       <input
         ref={ref}
         type={visible ? 'text' : 'password'}
-        className={`${className} pr-10`}
+        className={`${className} ${onKeyboardToggle ? 'pr-16' : 'pr-10'}`}
         {...props}
       />
+      {onKeyboardToggle && (
+        <button
+          type="button"
+          onClick={onKeyboardToggle}
+          aria-label="Toggle on-screen keyboard"
+          tabIndex={-1}
+          className={`absolute right-9 top-1/2 -translate-y-1/2 ${
+            keyboardActive ? 'text-wa-green-dark dark:text-wa-green' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+          }`}
+        >
+          <FontAwesomeIcon icon={faKeyboard} size="sm" />
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}

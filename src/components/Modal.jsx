@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
-export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
+export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg', align = 'center' }) {
   return (
     <AnimatePresence>
       {open && (
@@ -20,7 +20,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 overflow-y-auto flex items-start sm:items-center justify-center p-4"
+            className={`fixed inset-0 z-50 overflow-y-auto flex items-start ${align === 'start' ? '' : 'sm:items-center'} justify-center p-4`}
           >
             <div
               onClick={(e) => e.stopPropagation()}

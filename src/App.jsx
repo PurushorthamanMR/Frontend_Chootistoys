@@ -33,6 +33,7 @@ import PosLayout from './pages/pos/PosLayout';
 import Pos from './pages/pos/Pos';
 import PosSalesHistory from './pages/pos/PosSalesHistory';
 import PosDailySummary from './pages/pos/PosDailySummary';
+import PosXReport from './pages/pos/PosXReport';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -79,7 +80,7 @@ const KNOWN_PATHS = [
   '/admin', '/admin/dashboard', '/admin/products', '/admin/categories', '/admin/subcategories', '/admin/orders',
   '/admin/low-stock', '/admin/blogs', '/admin/offers', '/admin/banners', '/admin/users', '/admin/customers',
   '/admin/settings', '/admin/documentation',
-  '/pos', '/pos/sales-history', '/pos/daily-summary',
+  '/pos', '/pos/sales-history', '/pos/daily-summary', '/pos/x-report',
 ];
 
 const AUTH_PATHS = ['/login', '/register', '/apply-seller', '/seller-login', '/forgot-password'];
@@ -241,6 +242,7 @@ function App() {
                 <Route index element={<Pos />} />
                 <Route path="sales-history" element={<PosSalesHistory />} />
                 <Route path="daily-summary" element={<PosDailySummary />} />
+                <Route path="x-report" element={<PosXReport />} />
               </Route>
               <Route path="/wholesale-view/:token" element={<WholesaleView />} />
               <Route path="*" element={<PageNotFound />} />
@@ -248,10 +250,18 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-black transition-colors">
+    <div className={`min-h-screen flex flex-col bg-white dark:bg-black transition-colors ${isPosRoute ? 'h-dvh max-h-dvh overflow-hidden' : ''}`}>
       <CustomScrollbar />
       {!isAdminRoute && !isAuthRoute && !isWholesaleRoute && !isPosRoute && <Navbar />}
-      <main className={isAdminRoute || isAuthRoute || isWholesaleRoute || isPosRoute ? 'flex-1' : 'flex-1 pb-32 lg:pb-24'}>
+      <main
+        className={
+          isPosRoute
+            ? 'flex-1 min-h-0 overflow-hidden'
+            : isAdminRoute || isAuthRoute || isWholesaleRoute
+              ? 'flex-1'
+              : 'flex-1 pb-32 lg:pb-24'
+        }
+      >
         {isAdminRoute || isPosRoute ? (
           routesElement
         ) : (

@@ -348,6 +348,8 @@ export default function AdminSettings() {
       pos_is_active: form.pos_is_active,
       pos_tax_percent: form.pos_tax_percent,
       pos_service_charge_percent: form.pos_service_charge_percent,
+      pos_receipt_phone: form.pos_receipt_phone,
+      pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
     });
   }
 
@@ -1116,6 +1118,8 @@ export default function AdminSettings() {
                           pos_is_active: form.pos_is_active,
                           pos_tax_percent: form.pos_tax_percent,
                           pos_service_charge_percent: form.pos_service_charge_percent,
+                          pos_receipt_phone: form.pos_receipt_phone,
+                          pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
                         })
                       }
                     />
@@ -1171,6 +1175,45 @@ export default function AdminSettings() {
                       onChange={(e) => setForm({ ...form, pos_service_charge_percent: e.target.value })}
                       className={`${inputClass} disabled:opacity-60`}
                     />
+                  </div>
+                </div>
+                <div>
+                  <Label hint="(printed on POS receipts and Z-reports)">Receipt Contact Phone</Label>
+                  <input
+                    type="text"
+                    disabled={!editing}
+                    value={form.pos_receipt_phone ?? ''}
+                    onChange={(e) => setForm({ ...form, pos_receipt_phone: e.target.value })}
+                    className={`${inputClass} disabled:opacity-60`}
+                  />
+                </div>
+                <div>
+                  <Label hint="(product cards, cart, and checkout)">POS Display Price</Label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Choose whether cashiers see and charge Sale price or Cost (purchase) price.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'sale', label: 'Sale' },
+                      { key: 'cost', label: 'Cost' },
+                    ].map((opt) => {
+                      const selected = (form.pos_display_price || 'sale') === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          disabled={!editing}
+                          onClick={() => setForm({ ...form, pos_display_price: opt.key })}
+                          className={`text-sm font-semibold py-2.5 rounded-lg border touch-manipulation disabled:opacity-60 ${
+                            selected
+                              ? 'bg-wa-green text-white border-wa-green'
+                              : 'border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 {editing && <FloatingSaveCancel saving={saving} onCancel={() => cancelEdit(setForm)} formId="pos-form" />}

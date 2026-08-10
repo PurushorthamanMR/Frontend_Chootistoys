@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faKeyboard } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/PasswordInput';
+import OnScreenKeyboard from '../components/OnScreenKeyboard';
 import { authLabelClass, authInputClass, authButtonClass } from '../lib/authStyles';
 import api from '../api/client';
 
@@ -13,6 +16,7 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [keyboardTarget, setKeyboardTarget] = useState(null); // null | 'identifier' | 'password'
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -58,14 +62,27 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-5 md:space-y-4">
         <div>
           <label className={authLabelClass}>WhatsApp Number</label>
-          <input
-            type="text"
-            autoComplete="username"
-            required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            className={authInputClass}
-          />
+          <div className="relative">
+            <input
+              type="text"
+              autoComplete="username"
+              required
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className={`${authInputClass} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setKeyboardTarget((t) => (t === 'identifier' ? null : 'identifier'))}
+              aria-label="Toggle on-screen keyboard"
+              tabIndex={-1}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 ${
+                keyboardTarget === 'identifier' ? 'text-wa-green-dark dark:text-wa-green' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+            >
+              <FontAwesomeIcon icon={faKeyboard} size="sm" />
+            </button>
+          </div>
         </div>
         <div>
           <label className={authLabelClass}>Password</label>
@@ -75,6 +92,8 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={authInputClass}
+            onKeyboardToggle={() => setKeyboardTarget((t) => (t === 'password' ? null : 'password'))}
+            keyboardActive={keyboardTarget === 'password'}
           />
         </div>
         <div className="flex items-center justify-between text-sm">
@@ -111,6 +130,15 @@ export default function Login() {
         <p className="text-xs text-center mt-4 text-gray-400 dark:text-neutral-600">
           v{import.meta.env.VITE_APP_VERSION}
         </p>
+      )}
+
+      {keyboardTarget && (
+        <OnScreenKeyboard
+          value={keyboardTarget === 'identifier' ? identifier : password}
+          onChange={keyboardTarget === 'identifier' ? setIdentifier : setPassword}
+          onEnter={() => setKeyboardTarget(null)}
+          onClose={() => setKeyboardTarget(null)}
+        />
       )}
     </>
   );
