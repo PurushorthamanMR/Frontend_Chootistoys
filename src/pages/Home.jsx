@@ -191,7 +191,7 @@ function BannerCarousel({ banners }) {
 function SubcategorySpotlight({ subcategories }) {
   if (subcategories.length === 0) return null;
   return (
-    <div className="mb-8">
+    <div>
       <SectionHeading icon={faSitemap} title="Explore Subcategories" />
       <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {subcategories.map((sub) => (
@@ -212,6 +212,72 @@ function SubcategorySpotlight({ subcategories }) {
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+function OfferBannerSection({ offerImage }) {
+  if (!offerImage) return null;
+  return (
+    <Link to="/products" className="block rounded-2xl overflow-hidden">
+      <img src={offerImage} alt="Current offer" className="w-full h-40 sm:h-56 lg:h-72 object-cover" />
+    </Link>
+  );
+}
+
+function HotCategoriesSection({ hotCategories }) {
+  if (hotCategories.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading icon={faFire} title="Hot Categories" />
+      <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
+        {hotCategories.map((cat) => (
+          <CategoryTile key={cat.id} cat={cat} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeaturedProductsSection({ featuredProducts }) {
+  if (featuredProducts.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading icon={faStar} title="Featured Products" />
+      <ProductGrid products={featuredProducts} columns="md:grid-cols-2 lg:grid-cols-3" />
+    </div>
+  );
+}
+
+function FeaturedCategoriesSection({ featuredCategories }) {
+  if (featuredCategories.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading icon={faLayerGroup} title="Featured Categories" />
+      <div className="flex gap-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {featuredCategories.map((cat) => (
+          <Link
+            key={cat.id}
+            to={`/products?category=${cat.slug}`}
+            className="shrink-0 w-24 sm:w-28 flex flex-col items-center gap-2 text-center"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800">
+              <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+            </div>
+            <span className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">{cat.name}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BestSellingSection({ bestSelling }) {
+  if (bestSelling.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading icon={faFire} title="Best Selling" />
+      <ProductGrid products={bestSelling} columns="md:grid-cols-2 lg:grid-cols-5" />
     </div>
   );
 }
@@ -300,6 +366,21 @@ function AllProductsSection({ onEmptyChange }) {
   );
 }
 
+// Default render order, matching the order these sections shipped in before
+// the Admin > Home Layout drag-and-drop feature existed - used to paint
+// instantly before /api/home-sections responds (and as a fallback if that
+// request fails), and must stay in sync with Backend/src/utils/homeSections.js.
+const DEFAULT_SECTION_ORDER = [
+  'offer_banner',
+  'hot_categories',
+  'featured_products',
+  'featured_categories',
+  'subcategory_spotlight',
+  'best_selling',
+  'banner_carousel',
+  'all_products',
+].map((section_key, position) => ({ section_key, position, is_visible: true }));
+
 export default function Home() {
   const { user } = useAuth();
   const cached = getHomeCache();
@@ -310,6 +391,7 @@ export default function Home() {
   const [featuredCategories, setFeaturedCategories] = useState(cached?.featuredCategories ?? []);
   const [bestSelling, setBestSelling] = useState(cached?.bestSelling ?? []);
   const [banners, setBanners] = useState(cached?.banners ?? []);
+  const [sectionOrder, setSectionOrder] = useState(cached?.sectionOrder ?? DEFAULT_SECTION_ORDER);
   const [loading, setLoading] = useState(!cached);
   const [productsEmpty, setProductsEmpty] = useState(
     cached?.allProducts ? cached.allProducts.length === 0 : false
@@ -328,28 +410,61 @@ export default function Home() {
       api.get('/analytics/featured-categories'),
       api.get('/analytics/best-selling?limit=5'),
       api.get('/banners'),
+      api.get('/home-sections'),
     ])
-      .then(([offersRes, hotCatRes, hotSubcatRes, featuredProdRes, featuredCatRes, bestSellingRes, bannersRes]) => {
-        const data = {
-          offerImage: offersRes.data[0]?.image || null,
-          hotCategories: hotCatRes.data,
-          hotSubcategories: hotSubcatRes.data,
-          featuredProducts: featuredProdRes.data,
-          featuredCategories: featuredCatRes.data,
-          bestSelling: bestSellingRes.data,
-          banners: bannersRes.data,
-        };
-        setOfferImage(data.offerImage);
-        setHotCategories(data.hotCategories);
-        setHotSubcategories(data.hotSubcategories);
-        setFeaturedProducts(data.featuredProducts);
-        setFeaturedCategories(data.featuredCategories);
-        setBestSelling(data.bestSelling);
-        setBanners(data.banners);
-        setHomeCache(data);
-      })
+      .then(
+        ([
+          offersRes,
+          hotCatRes,
+          hotSubcatRes,
+          featuredProdRes,
+          featuredCatRes,
+          bestSellingRes,
+          bannersRes,
+          sectionsRes,
+        ]) => {
+          const data = {
+            offerImage: offersRes.data[0]?.image || null,
+            hotCategories: hotCatRes.data,
+            hotSubcategories: hotSubcatRes.data,
+            featuredProducts: featuredProdRes.data,
+            featuredCategories: featuredCatRes.data,
+            bestSelling: bestSellingRes.data,
+            banners: bannersRes.data,
+            sectionOrder: sectionsRes.data.length > 0 ? sectionsRes.data : DEFAULT_SECTION_ORDER,
+          };
+          setOfferImage(data.offerImage);
+          setHotCategories(data.hotCategories);
+          setHotSubcategories(data.hotSubcategories);
+          setFeaturedProducts(data.featuredProducts);
+          setFeaturedCategories(data.featuredCategories);
+          setBestSelling(data.bestSelling);
+          setBanners(data.banners);
+          setSectionOrder(data.sectionOrder);
+          setHomeCache(data);
+        }
+      )
       .finally(() => setLoading(false));
   }, [user]);
+
+  // Keyed by section_key so the render order below can just walk
+  // `sectionOrder` (as saved in Admin > Home Layout) instead of a fixed
+  // JSX sequence. Each renderer takes the React `key` directly and returns
+  // the section's own root element (or null) - no wrapping <div>, so a
+  // section with no data to show renders nothing at all rather than an
+  // empty spacer that `space-y-10` would still put a gap around.
+  const sectionRenderers = {
+    offer_banner: (key) => <OfferBannerSection key={key} offerImage={offerImage} />,
+    hot_categories: (key) => <HotCategoriesSection key={key} hotCategories={hotCategories} />,
+    featured_products: (key) => <FeaturedProductsSection key={key} featuredProducts={featuredProducts} />,
+    featured_categories: (key) => (
+      <FeaturedCategoriesSection key={key} featuredCategories={featuredCategories} />
+    ),
+    subcategory_spotlight: (key) => <SubcategorySpotlight key={key} subcategories={hotSubcategories} />,
+    best_selling: (key) => <BestSellingSection key={key} bestSelling={bestSelling} />,
+    banner_carousel: (key) => <BannerCarousel key={key} banners={banners} />,
+    all_products: (key) => <AllProductsSection key={key} onEmptyChange={setProductsEmpty} />,
+  };
 
   const hasCuratedContent =
     !!offerImage ||
@@ -372,73 +487,9 @@ export default function Home() {
         </>
       ) : (
         <>
-          {/* Hero Section */}
-          <section>
-            {offerImage && (
-              <Link to="/products" className="block rounded-2xl overflow-hidden mb-8">
-                <img src={offerImage} alt="Current offer" className="w-full h-40 sm:h-56 lg:h-72 object-cover" />
-              </Link>
-            )}
-
-            {hotCategories.length > 0 && (
-              <div className="mb-8">
-                <SectionHeading icon={faFire} title="Hot Categories" />
-
-                <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
-                  {hotCategories.map((cat) => (
-                    <CategoryTile key={cat.id} cat={cat} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {featuredProducts.length > 0 && (
-              <div>
-                <SectionHeading icon={faStar} title="Featured Products" />
-                <ProductGrid products={featuredProducts} columns="md:grid-cols-2 lg:grid-cols-3" />
-              </div>
-            )}
-          </section>
-
-          {/* Feature Section */}
-          <section>
-            {featuredCategories.length > 0 && (
-              <div className="mb-8">
-                <SectionHeading icon={faLayerGroup} title="Featured Categories" />
-                <div className="flex gap-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {featuredCategories.map((cat) => (
-                    <Link
-                      key={cat.id}
-                      to={`/products?category=${cat.slug}`}
-                      className="shrink-0 w-24 sm:w-28 flex flex-col items-center gap-2 text-center"
-                    >
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800">
-                        <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
-                        {cat.name}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <SubcategorySpotlight subcategories={hotSubcategories} />
-
-            {bestSelling.length > 0 && (
-              <div>
-                <SectionHeading icon={faFire} title="Best Selling" />
-                <ProductGrid products={bestSelling} columns="md:grid-cols-2 lg:grid-cols-5" />
-              </div>
-            )}
-          </section>
-
-          {/* Banner Section */}
-          <BannerCarousel banners={banners} />
-
-          {/* Product Section */}
-          <AllProductsSection onEmptyChange={setProductsEmpty} />
+          {sectionOrder
+            .filter((s) => s.is_visible)
+            .map((s) => sectionRenderers[s.section_key]?.(s.section_key))}
         </>
       )}
     </div>

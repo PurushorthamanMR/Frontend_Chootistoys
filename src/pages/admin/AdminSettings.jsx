@@ -14,6 +14,7 @@ import {
   faBook,
   faDatabase,
   faCircleInfo,
+  faArrowsUpDownLeftRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { faGoogleDrive } from '@fortawesome/free-brands-svg-icons';
 import api from '../../api/client';
@@ -25,6 +26,7 @@ import { successAlert, confirmAction, errorAlert } from '../../lib/alert';
 import { copyText } from '../../lib/clipboard';
 import ImageUploadBox from '../../components/ImageUploadBox';
 import LoadingBlock from '../../components/LoadingBlock';
+import AdminHomeLayout from './AdminHomeLayout';
 
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 const DEFAULT_LOGO = '/img/logo.jpg';
@@ -35,6 +37,7 @@ export const SETTINGS_SECTIONS = [
   { key: 'appearance', label: 'Appearance', icon: faPalette },
   { key: 'about', label: 'About Us', icon: faCircleInfo },
   { key: 'legal', label: 'Legal Pages', icon: faFileContract },
+  { key: 'homeLayout', label: 'Home Layout', icon: faArrowsUpDownLeftRight },
   { key: 'drive', label: 'Google Drive', icon: faGoogleDrive },
   { key: 'email', label: 'Email (EmailJS)', icon: faEnvelope },
   { key: 'wholesale', label: 'Wholesale Link', icon: faLink },
@@ -174,6 +177,9 @@ export default function AdminSettings() {
   const activeSection = sections.some((s) => s.key === requestedSection) ? requestedSection : 'general';
   const [exportingStructure, setExportingStructure] = useState(false);
   const [exportingData, setExportingData] = useState(false);
+  const [exportingSettings, setExportingSettings] = useState(false);
+  const [importingSettings, setImportingSettings] = useState(false);
+  const importFileInputRef = useRef(null);
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -517,6 +523,56 @@ export default function AdminSettings() {
     }
   }
 
+  async function handleExportSettingsData() {
+    const confirmed = await confirmAction({
+      title: 'Export settings data?',
+      text: 'Downloads a .sql file with just the settings table\'s data. Use this file to restore settings later via Import Settings Data.',
+      confirmText: 'Export',
+    });
+    if (!confirmed) return;
+
+    setExportingSettings(true);
+    try {
+      const dataRes = await api.get('/settings/export/data', {
+        params: { table: 'settings' },
+        responseType: 'blob',
+      });
+      downloadBlob(dataRes, 'settings_data.sql');
+      successAlert('Export ready', 'The settings data file has started downloading.');
+    } catch (err) {
+      errorAlert('Export failed', err.response?.data?.message || 'Failed to export the settings data.');
+    } finally {
+      setExportingSettings(false);
+    }
+  }
+
+  async function handleImportSettingsFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const confirmed = await confirmAction({
+      title: 'Import this settings file?',
+      text: 'This will overwrite the store\'s current settings with the contents of this file.',
+      confirmText: 'Import',
+    });
+    if (!confirmed) return;
+
+    setImportingSettings(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api.post('/settings/import/data', formData);
+      await refreshSettings();
+      await refreshSetupStatus();
+      successAlert('Import complete', 'Settings have been restored from the file.');
+    } catch (err) {
+      errorAlert('Import failed', err.response?.data?.message || 'Failed to import settings data.');
+    } finally {
+      setImportingSettings(false);
+    }
+  }
+
   if (!form) return <LoadingBlock className="py-16" />;
 
   return (
@@ -823,6 +879,8 @@ export default function AdminSettings() {
             </form>
           )}
 
+          {activeSection === 'homeLayout' && <AdminHomeLayout />}
+
           {activeSection === 'email' && (
             emailForm ? (
               <form id="email-form" onSubmit={handleEmailSubmit}>
@@ -1036,7 +1094,7 @@ export default function AdminSettings() {
               title="Database Export"
               description="Downloads two files: one with just the table structure (CREATE TABLE statements, no data) and one with just the data (INSERT statements, no schema) - the same split phpMyAdmin offers. Requires mysqldump to be installed on the backend server."
             >
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={handleExportStructure}
@@ -1052,6 +1110,37 @@ export default function AdminSettings() {
                   className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
                 >
                   {exportingData ? 'Exporting...' : 'Export Data'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportSettingsData}
+                  disabled={exportingSettings}
+                  className="border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 font-semibold px-4 py-2 rounded-md"
+                >
+                  {exportingSettings ? 'Exporting...' : 'Export Settings Data'}
+                </button>
+              </div>
+
+              <div className="pt-5 border-t border-gray-200 dark:border-neutral-800">
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Import Settings Data</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-3">
+                  Restores the store's settings from a file produced by "Export Settings Data" above. This
+                  overwrites the current settings.
+                </p>
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".sql"
+                  className="hidden"
+                  onChange={handleImportSettingsFile}
+                />
+                <button
+                  type="button"
+                  onClick={() => importFileInputRef.current?.click()}
+                  disabled={importingSettings}
+                  className="border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-50 font-semibold px-4 py-2 rounded-md"
+                >
+                  {importingSettings ? 'Importing...' : 'Import Settings Data'}
                 </button>
               </div>
             </SectionCard>

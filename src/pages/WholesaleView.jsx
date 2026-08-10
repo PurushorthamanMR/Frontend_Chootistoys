@@ -12,7 +12,6 @@ import {
   faCartShopping,
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../api/client';
-import Pagination from '../components/Pagination';
 import LoadingBlock from '../components/LoadingBlock';
 import Toast from '../components/Toast';
 import { useSettings } from '../context/SettingsContext';
@@ -33,18 +32,18 @@ function loadCart() {
   }
 }
 
-function QuantityControl({ quantity, stock, onAdd, onIncrement, onDecrement, fullWidth }) {
+function QuantityControl({ quantity, stock, onAdd, onIncrement, onDecrement }) {
   const outOfStock = stock <= 0;
   const atMax = quantity >= stock;
 
   if (quantity > 0) {
     return (
-      <div className={`flex items-center gap-1.5 shrink-0 ${fullWidth ? 'w-full justify-between bg-white/50 dark:bg-neutral-800/50 rounded-lg py-1 px-1' : ''}`}>
+      <div className="flex items-center gap-1.5 shrink-0">
         <motion.button
           onClick={onDecrement}
           whileTap={{ scale: 0.85 }}
           aria-label="Decrease quantity"
-          className="w-8 h-8 rounded-lg bg-white/70 dark:bg-neutral-800/70 flex items-center justify-center text-lg font-light leading-none text-gray-900 dark:text-gray-100"
+          className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 flex items-center justify-center text-lg font-light leading-none text-gray-900 dark:text-gray-100"
         >
           −
         </motion.button>
@@ -53,7 +52,7 @@ function QuantityControl({ quantity, stock, onAdd, onIncrement, onDecrement, ful
           initial={{ scale: 1.3 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.15 }}
-          className="w-6 text-center text-sm font-semibold text-gray-900 dark:text-gray-100"
+          className="w-5 text-center text-sm font-semibold text-gray-900 dark:text-gray-100"
         >
           {quantity}
         </motion.span>
@@ -63,7 +62,7 @@ function QuantityControl({ quantity, stock, onAdd, onIncrement, onDecrement, ful
           disabled={atMax}
           aria-label="Increase quantity"
           title={atMax ? `Only ${stock} in stock` : undefined}
-          className="w-8 h-8 rounded-lg bg-white/70 dark:bg-neutral-800/70 disabled:opacity-30 flex items-center justify-center text-lg font-light leading-none text-gray-900 dark:text-gray-100"
+          className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 disabled:opacity-30 flex items-center justify-center text-lg font-light leading-none text-gray-900 dark:text-gray-100"
         >
           +
         </motion.button>
@@ -74,11 +73,13 @@ function QuantityControl({ quantity, stock, onAdd, onIncrement, onDecrement, ful
   return (
     <motion.button
       onClick={onAdd}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.85 }}
       disabled={outOfStock}
-      className={`shrink-0 bg-wa-green hover:bg-wa-green-dark disabled:bg-gray-300 dark:disabled:bg-neutral-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full ${fullWidth ? 'w-full' : ''}`}
+      aria-label="Add to cart"
+      title={outOfStock ? 'Out of stock' : undefined}
+      className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 disabled:opacity-30 flex items-center justify-center shrink-0 text-gray-900 dark:text-gray-100 text-xl font-light leading-none"
     >
-      {outOfStock ? 'Out of stock' : 'Add'}
+      +
     </motion.button>
   );
 }
@@ -89,51 +90,22 @@ function WholesaleRow({ product, formatPrice, quantity, onAdd, onIncrement, onDe
       variants={fadeUpItem}
       initial="hidden"
       animate="show"
-      className={`flex items-center gap-3 p-3 rounded-2xl ${GLASS_CARD}`}
+      className="flex items-center gap-3 py-3 border-b border-gray-100 dark:border-neutral-800 last:border-b-0"
     >
       <img
         src={product.image}
         alt={product.name}
-        className="w-16 h-16 rounded-xl object-cover shrink-0 bg-white/50 dark:bg-neutral-800/50"
+        className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-neutral-800"
         loading="lazy"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+        <p className="font-bold text-gray-900 dark:text-gray-100">
           {product.name}
           {product.product_code && <span className="text-gray-400 font-normal"> ({product.product_code})</span>}
         </p>
-        <span className="inline-block mt-1 text-sm font-bold text-wa-green-dark dark:text-wa-green bg-wa-green/10 dark:bg-wa-green/15 px-2.5 py-0.5 rounded-full">
-          {formatPrice(product.purchase_price)}
-        </span>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">{formatPrice(product.purchase_price)}</p>
       </div>
       <QuantityControl quantity={quantity} stock={product.stock} onAdd={onAdd} onIncrement={onIncrement} onDecrement={onDecrement} />
-    </motion.div>
-  );
-}
-
-function WholesaleCard({ product, formatPrice, quantity, onAdd, onIncrement, onDecrement }) {
-  return (
-    <motion.div
-      variants={fadeUpItem}
-      initial="hidden"
-      animate="show"
-      whileHover={{ y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`rounded-2xl flex flex-col overflow-hidden ${GLASS_CARD}`}
-    >
-      <img src={product.image} alt={product.name} className="w-full h-40 object-cover" loading="lazy" />
-      <div className="p-3 flex flex-col flex-1">
-        <p className="font-medium text-sm text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">
-          {product.name}
-          {product.product_code && <span className="text-gray-400 font-normal"> ({product.product_code})</span>}
-        </p>
-        <span className="inline-block self-start mt-2 text-sm font-bold text-wa-green-dark dark:text-wa-green bg-wa-green/10 dark:bg-wa-green/15 px-2.5 py-0.5 rounded-full">
-          {formatPrice(product.purchase_price)}
-        </span>
-        <div className="mt-3">
-          <QuantityControl quantity={quantity} stock={product.stock} onAdd={onAdd} onIncrement={onIncrement} onDecrement={onDecrement} fullWidth />
-        </div>
-      </div>
     </motion.div>
   );
 }
@@ -152,7 +124,7 @@ export default function WholesaleView() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invalid, setInvalid] = useState(false);
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [cart, setCart] = useState(loadCart);
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState(null);
@@ -186,7 +158,7 @@ export default function WholesaleView() {
   }, [token, category, subcategory, search]);
 
   useEffect(() => {
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [category, subcategory, search]);
 
   useEffect(() => {
@@ -263,8 +235,26 @@ export default function WholesaleView() {
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
-  const pagedProducts = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visibleProducts = products.slice(0, visibleCount);
+  const hasMore = visibleCount < products.length;
+
+  // The "All Products" landing view (no category/subcategory/search picked)
+  // groups the flat product list back into per-category previews instead of
+  // one long paginated grid - each category gets its own "See All" that
+  // switches into the normal filtered/paginated view for just that category.
+  const isDefaultView = !category && !subcategory && !search;
+  const categoryGroups = isDefaultView
+    ? Object.values(
+        products.reduce((acc, p) => {
+          if (!p.category_slug) return acc;
+          if (!acc[p.category_slug]) {
+            acc[p.category_slug] = { name: p.category_name, slug: p.category_slug, products: [] };
+          }
+          acc[p.category_slug].products.push(p);
+          return acc;
+        }, {})
+      )
+    : [];
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
@@ -437,37 +427,60 @@ export default function WholesaleView() {
               <LoadingBlock className="py-6" />
             ) : products.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400">No products found.</p>
+            ) : isDefaultView ? (
+              <div className="space-y-8">
+                {categoryGroups.map((group) => (
+                  <div key={group.slug}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100">{group.name}</h3>
+                      <button
+                        type="button"
+                        onClick={() => selectCategory(group.slug)}
+                        className="text-sm font-semibold text-wa-green-dark dark:text-wa-green hover:underline shrink-0"
+                      >
+                        See All
+                      </button>
+                    </div>
+                    <div className="max-w-2xl">
+                      {group.products.slice(0, 3).map((p) => (
+                        <WholesaleRow
+                          key={p.id}
+                          product={p}
+                          formatPrice={formatPrice}
+                          quantity={cartQuantity(p.id)}
+                          onAdd={() => addToCart(p)}
+                          onIncrement={() => incrementItem(p.id, p.stock)}
+                          onDecrement={() => decrementItem(p.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div key={`${category}-${subcategory}-${search}-${page}`}>
-                <div className="md:hidden max-w-2xl space-y-3">
-                  {pagedProducts.map((p) => (
-                    <WholesaleRow
-                      key={p.id}
-                      product={p}
-                      formatPrice={formatPrice}
-                      quantity={cartQuantity(p.id)}
-                      onAdd={() => addToCart(p)}
-                      onIncrement={() => incrementItem(p.id, p.stock)}
-                      onDecrement={() => decrementItem(p.id)}
-                    />
-                  ))}
-                </div>
-                <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {pagedProducts.map((p) => (
-                    <WholesaleCard
-                      key={p.id}
-                      product={p}
-                      formatPrice={formatPrice}
-                      quantity={cartQuantity(p.id)}
-                      onAdd={() => addToCart(p)}
-                      onIncrement={() => incrementItem(p.id, p.stock)}
-                      onDecrement={() => decrementItem(p.id)}
-                    />
-                  ))}
-                </div>
+              <div key={`${category}-${subcategory}-${search}`} className="max-w-2xl">
+                {visibleProducts.map((p) => (
+                  <WholesaleRow
+                    key={p.id}
+                    product={p}
+                    formatPrice={formatPrice}
+                    quantity={cartQuantity(p.id)}
+                    onAdd={() => addToCart(p)}
+                    onIncrement={() => incrementItem(p.id, p.stock)}
+                    onDecrement={() => decrementItem(p.id)}
+                  />
+                ))}
+                {hasMore && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    className="w-full mt-4 py-3 rounded-lg bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-neutral-700"
+                  >
+                    Load More
+                  </button>
+                )}
               </div>
             )}
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </div>
         </div>
       </div>
