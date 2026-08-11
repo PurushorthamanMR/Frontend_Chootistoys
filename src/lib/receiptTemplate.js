@@ -113,6 +113,41 @@ export function buildReceiptHtml({ sale, settings, formatPrice }) {
   `;
 }
 
+export function buildSalesHistoryHtml({ sales, settings, formatPrice, from, to }) {
+  const entries = (sales || [])
+    .map(
+      (s) => `
+        <div class="kv-row bold"><span>${new Date(s.created_at).toLocaleString()}</span><span>${formatPrice(s.total_amount)}</span></div>
+        <div class="kv-row"><span>Cashier</span><span>${escapeHtml(s.staff_name)}</span></div>
+        <div class="kv-row"><span>Customer</span><span>${escapeHtml(s.customer_name || 'Walk-in')}</span></div>
+        <div class="kv-row"><span>Payment</span><span class="capitalize">${escapeHtml(s.payment_method)}</span></div>
+        ${
+          Number(s.balance_due) > 0
+            ? `<div class="kv-row"><span>Balance Due</span><span>${formatPrice(s.balance_due)}</span></div>`
+            : ''
+        }
+        <div class="kv-row"><span>Status</span><span>${escapeHtml(s.status)}</span></div>
+        <hr class="rule" />
+      `
+    )
+    .join('');
+
+  const rangeLabel = from || to ? `${from || 'Start'} to ${to || 'Today'}` : 'All dates';
+  const grandTotal = (sales || []).reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0);
+
+  return `
+    ${RECEIPT_STYLES}
+    ${headerBlock(settings)}
+    <hr class="rule-solid" />
+    <div class="center bold">SALES HISTORY</div>
+    <div class="center muted">${escapeHtml(rangeLabel)}</div>
+    <hr class="rule" />
+    ${entries || '<div class="center muted">No sales in this range.</div>'}
+    <div class="totals-row grand"><span>Total (${(sales || []).length})</span><span>${formatPrice(grandTotal)}</span></div>
+    <div class="center thank-you">-- End of Report --</div>
+  `;
+}
+
 function paymentBreakdownRows(paymentBreakdown, formatPrice) {
   return (paymentBreakdown || [])
     .map((row) => `<div class="kv-row"><span class="bold">${escapeHtml(row.method)}</span><span>${formatPrice(row.total)}</span></div>`)

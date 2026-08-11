@@ -344,12 +344,24 @@ export default function AdminSettings() {
 
   function handlePosSubmit(e) {
     e.preventDefault();
+    const minVal = Number(form.pos_reduce_sale_min) || 0;
+    const maxVal = Number(form.pos_reduce_sale_max) || 0;
+    if (minVal < 0 || maxVal < 0) {
+      setError('Reduce Sale min and max must be 0 or greater');
+      return;
+    }
+    if (minVal > maxVal) {
+      setError('Reduce Sale min cannot be greater than max');
+      return;
+    }
     saveFields({
       pos_is_active: form.pos_is_active,
       pos_tax_percent: form.pos_tax_percent,
       pos_service_charge_percent: form.pos_service_charge_percent,
       pos_receipt_phone: form.pos_receipt_phone,
       pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
+      pos_reduce_sale_min: minVal,
+      pos_reduce_sale_max: maxVal,
     });
   }
 
@@ -1120,6 +1132,8 @@ export default function AdminSettings() {
                           pos_service_charge_percent: form.pos_service_charge_percent,
                           pos_receipt_phone: form.pos_receipt_phone,
                           pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
+                          pos_reduce_sale_min: form.pos_reduce_sale_min ?? 0,
+                          pos_reduce_sale_max: form.pos_reduce_sale_max ?? 0,
                         })
                       }
                     />
@@ -1214,6 +1228,39 @@ export default function AdminSettings() {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+                <div>
+                  <Label hint="(X-Report / Z-Report display only)">Reduce Sale</Label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    When enabled in POS (double-click store name), X and Z report totals above Max are
+                    reduced into this Min–Max range by quantity. Set both to 0 to disable.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label hint="(min total sales)">Min Total Sales</Label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        disabled={!editing}
+                        value={form.pos_reduce_sale_min ?? 0}
+                        onChange={(e) => setForm({ ...form, pos_reduce_sale_min: e.target.value })}
+                        className={`${inputClass} disabled:opacity-60`}
+                      />
+                    </div>
+                    <div>
+                      <Label hint="(max total sales)">Max Total Sales</Label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        disabled={!editing}
+                        value={form.pos_reduce_sale_max ?? 0}
+                        onChange={(e) => setForm({ ...form, pos_reduce_sale_max: e.target.value })}
+                        className={`${inputClass} disabled:opacity-60`}
+                      />
+                    </div>
                   </div>
                 </div>
                 {editing && <FloatingSaveCancel saving={saving} onCancel={() => cancelEdit(setForm)} formId="pos-form" />}

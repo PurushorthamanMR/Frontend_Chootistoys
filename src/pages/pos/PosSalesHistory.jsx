@@ -9,8 +9,10 @@ import ReceiptModal from '../../components/pos/ReceiptModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { confirmAction, successAlert, errorAlert } from '../../lib/alert';
-import { buildReceiptHtml } from '../../lib/receiptTemplate';
+import { buildReceiptHtml, buildSalesHistoryHtml } from '../../lib/receiptTemplate';
+import { printHtml } from '../../lib/printHtml';
 import { exportSalesPdf, exportSalesExcel } from '../../lib/posExport';
 
 const PAYMENT_METHODS = ['cash', 'card', 'cheque'];
@@ -207,6 +209,7 @@ export default function PosSalesHistory() {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { formatPrice } = useCurrency();
+  const { reducedSaleActive } = usePosReduceSale();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState('');
@@ -216,23 +219,25 @@ export default function PosSalesHistory() {
   const [returnSale, setReturnSale] = useState(null);
   const [loadingReturnId, setLoadingReturnId] = useState(null);
   const [settleSale, setSettleSale] = useState(null);
-  const canVoid = ['Admin', 'SuperAdmin'].includes(user?.role);
-  const canReturn = ['Admin', 'SuperAdmin'].includes(user?.role);
+  const canVoid = ['Admin', 'SuperAdmin'].includes(user?.role) && !reducedSaleActive;
+  const canReturn = ['Admin', 'SuperAdmin'].includes(user?.role) && !reducedSaleActive;
 
   function load() {
     setLoading(true);
     const params = {};
     if (from) params.from = from;
     if (to) params.to = to;
+    if (reducedSaleActive) params.reduced = 1;
     api
       .get('/pos/sales', { params })
       .then((res) => setSales(res.data))
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [from, to]);
+  useEffect(load, [from, to, reducedSaleActive]);
 
   async function handleVoid(sale) {
+    if (reducedSaleActive) return;
     const ok = await confirmAction({
       title: 'Void this sale?',
       text: `This restores stock for all items in sale #${sale.id}. This cannot be undone.`,
@@ -251,7 +256,9 @@ export default function PosSalesHistory() {
   async function handlePrint(sale) {
     setPrintingId(sale.id);
     try {
-      const { data } = await api.get(`/pos/sales/${sale.id}`);
+      const params = {};
+      if (reducedSaleActive) params.reduced = 1;
+      const { data } = await api.get(`/pos/sales/${sale.id}`, { params });
       setReceiptSale(data);
     } catch (err) {
       errorAlert('Failed to load receipt', err.response?.data?.message);
@@ -261,6 +268,7 @@ export default function PosSalesHistory() {
   }
 
   async function handleOpenReturn(sale) {
+    if (reducedSaleActive) return;
     setLoadingReturnId(sale.id);
     try {
       const { data } = await api.get(`/pos/sales/${sale.id}`);
@@ -277,6 +285,15 @@ export default function PosSalesHistory() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">POS Sales History</h2>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => printHtml(buildSalesHistoryHtml({ sales, settings, formatPrice, from, to }), 'POS Sales History')}
+            disabled={sales.length === 0}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
+          >
+            <FontAwesomeIcon icon={faPrint} />
+            Print
+          </button>
           <button
             type="button"
             onClick={() => exportSalesPdf(sales, settings)}
@@ -326,7 +343,6 @@ export default function PosSalesHistory() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-neutral-800 text-left text-gray-700 dark:text-gray-300">
               <tr>
-                <th className="p-3">#</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Cashier</th>
                 <th className="p-3">Customer</th>
@@ -341,7 +357,6 @@ export default function PosSalesHistory() {
             <tbody>
               {sales.map((s) => (
                 <tr key={s.id} className="border-t border-gray-200 dark:border-neutral-800 text-gray-800 dark:text-gray-200">
-                  <td className="p-3">{s.id}</td>
                   <td className="p-3 text-gray-500 dark:text-gray-400">{new Date(s.created_at).toLocaleString()}</td>
                   <td className="p-3">{s.staff_name}</td>
                   <td className="p-3 text-gray-500 dark:text-gray-400">{s.customer_name || 'Walk-in'}</td>
@@ -372,7 +387,7 @@ export default function PosSalesHistory() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
-                      {Number(s.balance_due) > 0 && s.status === 'completed' && (
+                      {!reducedSaleActive && Number(s.balance_due) > 0 && s.status === 'completed' && (
                         <button
                           onClick={() => setSettleSale(s)}
                           aria-label="Settle balance"

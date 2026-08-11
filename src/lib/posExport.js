@@ -11,21 +11,30 @@ function pdfHeader(doc, settings, title) {
   doc.text(settings?.store_name || 'Store', 14, 15);
   doc.setFontSize(10);
   doc.setTextColor(100);
-  if (settings?.address) doc.text(settings.address, 14, 21);
+  let y = 21;
+  if (settings?.address) {
+    doc.text(settings.address, 14, y);
+    y += 6;
+  }
+  if (settings?.pos_receipt_phone) {
+    doc.text(`Contact: ${settings.pos_receipt_phone}`, 14, y);
+    y += 6;
+  }
   doc.setTextColor(0);
   doc.setFontSize(12);
-  doc.text(title, 14, 30);
+  doc.text(title, 14, y + 3);
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text(`Generated ${new Date().toLocaleString()}`, 14, 35);
+  doc.text(`Generated ${new Date().toLocaleString()}`, 14, y + 8);
   doc.setTextColor(0);
+  return y + 8;
 }
 
 export function exportSalesPdf(sales, settings) {
   const doc = new jsPDF();
-  pdfHeader(doc, settings, 'POS Sales History');
+  const headerEndY = pdfHeader(doc, settings, 'POS Sales History');
   autoTable(doc, {
-    startY: 40,
+    startY: headerEndY + 5,
     head: [['#', 'Date', 'Cashier', 'Customer', 'Total', 'Status']],
     body: sales.map((s) => [
       s.id,
@@ -56,10 +65,10 @@ export function exportSalesExcel(sales) {
 
 export function exportZReportPdf({ report, staffSales, settings }) {
   const doc = new jsPDF();
-  pdfHeader(doc, settings, `Z-Report - ${report.date}`);
+  const headerEndY = pdfHeader(doc, settings, `Z-Report - ${report.date}`);
 
   autoTable(doc, {
-    startY: 40,
+    startY: headerEndY + 5,
     head: [['Total Sales', 'Transactions', 'Discounts', 'Voided', 'Returned', 'Outstanding Advances']],
     body: [[
       Number(report.totalSales).toFixed(2),
@@ -150,9 +159,9 @@ export function exportZReportExcel({ report, staffSales }) {
 
 export function exportXReportPdf({ xReport, settings }) {
   const doc = new jsPDF();
-  pdfHeader(doc, settings, 'X-Report (Live Shift Snapshot)');
+  const headerEndY = pdfHeader(doc, settings, 'X-Report (Live Shift Snapshot)');
 
-  let y = 40;
+  let y = headerEndY + 5;
   for (const row of xReport.shifts || []) {
     autoTable(doc, {
       startY: y,

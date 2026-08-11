@@ -6,6 +6,7 @@ import LoadingBlock from '../../components/LoadingBlock';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { buildZReportHtml } from '../../lib/receiptTemplate';
 import { printHtml } from '../../lib/printHtml';
 import { exportZReportPdf, exportZReportExcel } from '../../lib/posExport';
@@ -27,6 +28,7 @@ export default function PosDailySummary() {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { formatPrice } = useCurrency();
+  const { reducedSaleActive } = usePosReduceSale();
   const canSeeStaffBreakdown = ['Admin', 'SuperAdmin'].includes(user?.role);
   const [date, setDate] = useState(todayISO());
   const [report, setReport] = useState(null);
@@ -36,20 +38,24 @@ export default function PosDailySummary() {
 
   useEffect(() => {
     setLoading(true);
+    const params = { date };
+    if (reducedSaleActive) params.reduced = 1;
     api
-      .get('/pos/reports/daily', { params: { date } })
+      .get('/pos/reports/daily', { params })
       .then((res) => setReport(res.data))
       .finally(() => setLoading(false));
-  }, [date]);
+  }, [date, reducedSaleActive]);
 
   useEffect(() => {
     if (!canSeeStaffBreakdown) return;
     setLoadingStaffSales(true);
+    const params = { from: date, to: date };
+    if (reducedSaleActive) params.reduced = 1;
     api
-      .get('/pos/reports/staff-sales', { params: { from: date, to: date } })
+      .get('/pos/reports/staff-sales', { params })
       .then((res) => setStaffSales(res.data))
       .finally(() => setLoadingStaffSales(false));
-  }, [date, canSeeStaffBreakdown]);
+  }, [date, canSeeStaffBreakdown, reducedSaleActive]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">

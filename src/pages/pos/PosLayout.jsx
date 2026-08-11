@@ -3,30 +3,55 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCashRegister, faClockRotateLeft, faChartLine, faReceipt, faArrowLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import { PosReduceSaleProvider, usePosReduceSale } from '../../context/PosReduceSaleContext';
+import LoadingBlock from '../../components/LoadingBlock';
 
 const navLinkClass = ({ isActive }) =>
   `flex items-center justify-center gap-2 shrink-0 min-w-[2.25rem] sm:min-w-[2.75rem] px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-sm font-medium transition-colors touch-manipulation ${
     isActive ? 'bg-wa-green text-white' : 'text-gray-600 dark:text-gray-300 active:bg-gray-100 dark:active:bg-neutral-800'
   }`;
 
-export default function PosLayout() {
+function PosLayoutInner() {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const isStaffOnly = user?.role === 'Staff';
+  const { reducedSaleActive, reduceSaleConfigured, reduceSaleToggling, toggleReduceSale } = usePosReduceSale();
 
   function handleLogout() {
     logout();
     navigate('/login');
   }
 
+  function handleStoreNameDoubleClick(e) {
+    e.preventDefault();
+    if (!reduceSaleConfigured) return;
+    toggleReduceSale();
+  }
+
   return (
-    <div className="h-full max-h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-black">
+    <div className="h-full max-h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-black relative">
+      {reduceSaleToggling && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm">
+          <LoadingBlock className="py-16" />
+        </div>
+      )}
+
       <header className="sticky top-0 z-50 shrink-0 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border-b border-gray-200 dark:border-neutral-800 px-2 sm:px-4 py-2 sm:py-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-1 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1">
             <FontAwesomeIcon icon={faCashRegister} className="text-wa-green-dark dark:text-wa-green" />
-            <span className="font-bold text-gray-900 dark:text-gray-100 truncate max-w-[3.5rem] sm:max-w-none">
+            <span
+              onDoubleClick={handleStoreNameDoubleClick}
+              title={reduceSaleConfigured ? 'Double-click to toggle Reduce Sale on X/Z reports and Sales History' : undefined}
+              className={`font-bold truncate max-w-[3.5rem] sm:max-w-none select-none ${
+                reduceSaleConfigured ? 'cursor-pointer' : ''
+              } ${
+                reducedSaleActive
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-gray-900 dark:text-gray-100'
+              }`}
+            >
               {settings?.store_name || 'POS'}
             </span>
           </div>
@@ -79,5 +104,13 @@ export default function PosLayout() {
         <Outlet />
       </div>
     </div>
+  );
+}
+
+export default function PosLayout() {
+  return (
+    <PosReduceSaleProvider>
+      <PosLayoutInner />
+    </PosReduceSaleProvider>
   );
 }

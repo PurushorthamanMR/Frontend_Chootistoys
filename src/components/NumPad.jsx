@@ -2,13 +2,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faDeleteLeft } from '@fortawesome/free-solid-svg-icons';
 
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const MAX_DIGITS = 19;
 
 // Dedicated 0-9 numeric keypad for touch quantity entry - a plain custom grid
 // rather than react-simple-keyboard, so every digit is a large, reliably-laid-out
 // square button instead of a squeezed-down text-keyboard row.
 export default function NumPad({ value, onChange, onEnter, onClose }) {
   function press(digit) {
-    onChange(`${value ?? ''}${digit}`);
+    const current = String(value ?? '');
+    if (current.length >= MAX_DIGITS) return;
+    onChange(`${current}${digit}`);
   }
 
   function backspace() {

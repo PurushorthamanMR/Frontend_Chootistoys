@@ -12,6 +12,7 @@ import {
   faUserPlus,
   faKeyboard,
   faChevronLeft,
+  faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../../api/client';
 import Modal from '../../components/Modal';
@@ -173,9 +174,16 @@ function QuantityPickerModal({ product, initialQuantity, priceMode = 'sale', use
   const atMax = quantity >= product.stock;
 
   function clampQuantity(raw) {
-    const n = Math.floor(Number(raw));
-    if (!Number.isFinite(n) || n < 1) return 1;
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits === '') return '';
+    const n = Math.floor(Number(digits));
+    if (!Number.isFinite(n)) return '';
     return Math.min(product.stock || 1, n);
+  }
+
+  function commitQuantity() {
+    const n = Number(quantity);
+    return Number.isFinite(n) && n >= 1 ? Math.min(product.stock || 1, n) : 1;
   }
 
   return (
@@ -191,10 +199,10 @@ function QuantityPickerModal({ product, initialQuantity, priceMode = 'sale', use
 
         <button
           type="button"
-          onClick={() => onConfirm(product, quantity)}
+          onClick={() => onConfirm(product, commitQuantity())}
           className="w-full bg-wa-green hover:bg-wa-green-dark active:bg-wa-green-dark text-white font-bold py-3.5 rounded-xl text-base mb-3"
         >
-          Add {quantity} to Order · {formatPrice(unitPrice * quantity)}
+          Add {commitQuantity()} to Order · {formatPrice(unitPrice * commitQuantity())}
         </button>
 
         <div className="flex items-center justify-center gap-3 mb-2">
@@ -242,7 +250,7 @@ function QuantityPickerModal({ product, initialQuantity, priceMode = 'sale', use
         <NumPad
           value={String(quantity)}
           onChange={(val) => setQuantity(clampQuantity(val))}
-          onEnter={() => onConfirm(product, quantity)}
+          onEnter={() => onConfirm(product, commitQuantity())}
           onClose={onClose}
         />
       )}
@@ -582,6 +590,18 @@ export default function Pos() {
     });
   }
 
+  async function removeItem(productId) {
+    const item = cart.find((i) => i.product_id === productId);
+    if (!item) return;
+    const confirmed = await confirmAction({
+      title: 'Remove item?',
+      text: `Remove ${item.name} from the current order?`,
+      confirmText: 'Remove',
+    });
+    if (!confirmed) return;
+    setCart((prev) => prev.filter((i) => i.product_id !== productId));
+  }
+
   function resetCart() {
     setCart([]);
     setCustomer(null);
@@ -801,14 +821,21 @@ export default function Pos() {
             <>
               <div ref={productScrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3">
                 <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
-                  {visibleProducts.map((p, index) => (
+                  {visibleProducts.map((p, index) => {
+                    const cartQuantity = cart.find((i) => i.product_id === p.id)?.quantity || 0;
+                    return (
                     <button
                       key={p.id}
                       data-product-index={index}
                       onClick={() => setPendingProduct(p)}
                       disabled={p.stock <= 0}
-                      className="text-left bg-gray-50 dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-xl sm:rounded-2xl overflow-hidden disabled:opacity-40 active:scale-[0.97] transition-transform touch-manipulation"
+                      className="relative text-left bg-gray-50 dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-xl sm:rounded-2xl overflow-hidden disabled:opacity-40 active:scale-[0.97] transition-transform touch-manipulation"
                     >
+                      {cartQuantity > 0 && (
+                        <span className="absolute top-1 right-1 z-10 min-w-[1.25rem] h-5 px-1 rounded-full bg-wa-green text-white text-[10px] font-bold flex items-center justify-center shadow">
+                          {cartQuantity}
+                        </span>
+                      )}
                       <img src={p.image} alt={p.name} className="w-full h-16 sm:h-28 object-cover" loading="lazy" />
                       <div className="p-1.5 sm:p-2.5">
                         <p className="text-[10px] sm:text-xs font-semibold text-gray-900 dark:text-gray-100 line-clamp-2">
@@ -818,10 +845,15 @@ export default function Pos() {
                         <p className="text-xs sm:text-sm font-bold text-wa-green-dark dark:text-wa-green mt-0.5 sm:mt-1">
                           {formatPrice(posUnitPrice(p, priceMode))}
                         </p>
-                        {p.stock <= 0 && <p className="text-[9px] sm:text-[11px] text-red-500 font-semibold">Out of stock</p>}
+                        {p.stock > 0 ? (
+                          <p className="text-[9px] sm:text-[11px] text-gray-400 dark:text-gray-500">Stock: {p.stock}</p>
+                        ) : (
+                          <p className="text-[9px] sm:text-[11px] text-red-500 font-semibold">Out of stock</p>
+                        )}
                       </div>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               {hasMore && (
@@ -950,6 +982,13 @@ export default function Pos() {
                       aria-label="Increase quantity"
                     >
                       <FontAwesomeIcon icon={faPlus} size="xs" />
+                    </button>
+                    <button
+                      onClick={() => removeItem(item.product_id)}
+                      className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-500 active:bg-red-100 dark:active:bg-red-900/50 flex items-center justify-center touch-manipulation"
+                      aria-label="Remove item"
+                    >
+                      <FontAwesomeIcon icon={faTrash} size="xs" />
                     </button>
                   </div>
                 </div>

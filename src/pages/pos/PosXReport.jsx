@@ -5,6 +5,7 @@ import api from '../../api/client';
 import LoadingBlock from '../../components/LoadingBlock';
 import { useSettings } from '../../context/SettingsContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { buildXReportHtml } from '../../lib/receiptTemplate';
 import { printHtml } from '../../lib/printHtml';
 import { exportXReportPdf, exportXReportExcel } from '../../lib/posExport';
@@ -21,18 +22,25 @@ function StatCard({ label, value }) {
 export default function PosXReport() {
   const { settings } = useSettings();
   const { formatPrice } = useCurrency();
+  const { reducedSaleActive } = usePosReduceSale();
   const [xReport, setXReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
   function load() {
     setLoading(true);
+    const params = {};
+    if (reducedSaleActive) params.reduced = 1;
     api
-      .get('/pos/reports/x-report')
+      .get('/pos/reports/x-report', { params })
       .then((res) => setXReport(res.data))
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    // Reload when Reduce Sale toggle flips
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedSaleActive]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">

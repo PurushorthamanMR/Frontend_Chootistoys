@@ -13,14 +13,14 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[55]"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className={`fixed inset-0 z-50 overflow-y-auto flex items-start ${align === 'start' ? '' : 'sm:items-center'} justify-center p-4`}
+            className={`fixed inset-0 z-[60] overflow-y-auto flex items-start ${align === 'start' ? '' : 'sm:items-center'} justify-center p-4`}
           >
             <div
               onClick={(e) => e.stopPropagation()}
