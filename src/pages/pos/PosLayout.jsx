@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Outlet, useNavigate, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCashRegister, faClockRotateLeft, faChartLine, faReceipt, faArrowLeft, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
@@ -5,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { PosReduceSaleProvider, usePosReduceSale } from '../../context/PosReduceSaleContext';
 import LoadingBlock from '../../components/LoadingBlock';
+
+const TRIPLE_CLICK_MS = 500;
 
 const navLinkClass = ({ isActive }) =>
   `flex items-center justify-center gap-2 shrink-0 min-w-[2.25rem] sm:min-w-[2.75rem] px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-sm font-medium transition-colors touch-manipulation ${
@@ -17,16 +20,34 @@ function PosLayoutInner() {
   const navigate = useNavigate();
   const isStaffOnly = user?.role === 'Staff';
   const { reducedSaleActive, reduceSaleConfigured, reduceSaleToggling, toggleReduceSale } = usePosReduceSale();
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef(null);
 
   function handleLogout() {
     logout();
     navigate('/login');
   }
 
-  function handleStoreNameDoubleClick(e) {
+  function handleStoreNameClick(e) {
     e.preventDefault();
     if (!reduceSaleConfigured) return;
-    toggleReduceSale();
+
+    clickCountRef.current += 1;
+    if (clickTimerRef.current) {
+      window.clearTimeout(clickTimerRef.current);
+    }
+
+    if (clickCountRef.current >= 3) {
+      clickCountRef.current = 0;
+      clickTimerRef.current = null;
+      toggleReduceSale();
+      return;
+    }
+
+    clickTimerRef.current = window.setTimeout(() => {
+      clickCountRef.current = 0;
+      clickTimerRef.current = null;
+    }, TRIPLE_CLICK_MS);
   }
 
   return (
@@ -42,8 +63,8 @@ function PosLayoutInner() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-1">
             <FontAwesomeIcon icon={faCashRegister} className="text-wa-green-dark dark:text-wa-green" />
             <span
-              onDoubleClick={handleStoreNameDoubleClick}
-              title={reduceSaleConfigured ? 'Double-click to toggle Reduce Sale on X/Z reports and Sales History' : undefined}
+              onClick={handleStoreNameClick}
+              title={reduceSaleConfigured ? '' : undefined}
               className={`font-bold truncate max-w-[3.5rem] sm:max-w-none select-none ${
                 reduceSaleConfigured ? 'cursor-pointer' : ''
               } ${

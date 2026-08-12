@@ -14,18 +14,22 @@ function readStored() {
 
 export function PosReduceSaleProvider({ children }) {
   const { settings } = useSettings();
-  const [active, setActive] = useState(readStored);
+  const [sessionActive, setSessionActive] = useState(readStored);
   const [toggling, setToggling] = useState(false);
 
   const min = Number(settings?.pos_reduce_sale_min) || 0;
   const max = Number(settings?.pos_reduce_sale_max) || 0;
-  const configured = max > 0 && min >= 0 && min <= max;
+  const hasRange = max > 0 && min >= 0 && min <= max;
+  const adminForced = !!settings?.pos_reduce_sale_is_active;
+  // Triple-click available whenever Min/Max are valid (admin Enable is a separate force-on path).
+  const configured = hasRange;
+  const reducedSaleActive = hasRange && (adminForced || sessionActive);
 
   function toggleReduceSale() {
-    if (!configured || toggling) return false;
+    if (!hasRange || toggling || adminForced) return false;
     setToggling(true);
     window.setTimeout(() => {
-      setActive((prev) => {
+      setSessionActive((prev) => {
         const next = !prev;
         try {
           if (next) sessionStorage.setItem(STORAGE_KEY, '1');
@@ -43,7 +47,7 @@ export function PosReduceSaleProvider({ children }) {
   return (
     <PosReduceSaleContext.Provider
       value={{
-        reducedSaleActive: active && configured,
+        reducedSaleActive,
         reduceSaleConfigured: configured,
         reduceSaleToggling: toggling,
         toggleReduceSale,

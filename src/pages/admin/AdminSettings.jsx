@@ -360,6 +360,7 @@ export default function AdminSettings() {
       pos_service_charge_percent: form.pos_service_charge_percent,
       pos_receipt_phone: form.pos_receipt_phone,
       pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
+      pos_reduce_sale_is_active: form.pos_reduce_sale_is_active ? 1 : 0,
       pos_reduce_sale_min: minVal,
       pos_reduce_sale_max: maxVal,
     });
@@ -1132,6 +1133,7 @@ export default function AdminSettings() {
                           pos_service_charge_percent: form.pos_service_charge_percent,
                           pos_receipt_phone: form.pos_receipt_phone,
                           pos_display_price: form.pos_display_price === 'cost' ? 'cost' : 'sale',
+                          pos_reduce_sale_is_active: form.pos_reduce_sale_is_active ? 1 : 0,
                           pos_reduce_sale_min: form.pos_reduce_sale_min ?? 0,
                           pos_reduce_sale_max: form.pos_reduce_sale_max ?? 0,
                         })
@@ -1231,11 +1233,40 @@ export default function AdminSettings() {
                   </div>
                 </div>
                 <div>
-                  <Label hint="(X-Report / Z-Report display only)">Reduce Sale</Label>
+                  <Label hint="(X-Report / Z-Report / Sales History display only)">Reduce Sale</Label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    When enabled in POS (double-click store name), X and Z report totals above Max are
-                    reduced into this Min–Max range by quantity. Set both to 0 to disable.
+                    Set Min–Max for the reduced total range. Turn Enable on to put POS into reduced mode
+                    for everyone, or leave Enable off and triple-click the store name in POS to toggle
+                    reduced mode for that session only.
                   </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label>Reduce Sale Enabled</Label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        When on, POS shows reduced X/Z reports and Sales History immediately (no triple-click needed).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!editing}
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          pos_reduce_sale_is_active: form.pos_reduce_sale_is_active ? 0 : 1,
+                        })
+                      }
+                      aria-pressed={!!form.pos_reduce_sale_is_active}
+                      className={`shrink-0 w-12 h-7 rounded-full transition-colors disabled:opacity-60 ${
+                        form.pos_reduce_sale_is_active ? 'bg-wa-green' : 'bg-gray-300 dark:bg-neutral-700'
+                      }`}
+                    >
+                      <span
+                        className={`block w-5 h-5 rounded-full bg-white shadow transform transition-transform ${
+                          form.pos_reduce_sale_is_active ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label hint="(min total sales)">Min Total Sales</Label>
