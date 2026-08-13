@@ -231,11 +231,15 @@ export default function AdminSidebar() {
   // is treated as the developer role and is exempt from this onboarding gate.
   const setupIncomplete = !setupStatus || setupStatus.percent !== 100;
   const gatingActive = setupIncomplete && user?.role === 'Admin';
+  // Env-only PosSettings login (Backend/.env POS_USERNAME/POS_PASSWORD) is
+  // confined to Settings -> Point of Sale (enforced by PosSettingsRouteGate
+  // in AdminLayout) - the sidebar mirrors that by showing just brand + Logout.
+  const posSettingsOnly = user?.role === 'PosSettings';
   const settingsItem = {
     to: '/admin/settings',
     label: 'Settings',
     icon: faGear,
-    children: getSettingsSections(user?.role === 'SuperAdmin'),
+    children: getSettingsSections(user?.role),
   };
   const navScrollRef = useRef(null);
   const settingsAnchorRef = useRef(null);
@@ -298,13 +302,13 @@ export default function AdminSidebar() {
     navigate('/');
   }
 
-  const sections = gatingActive
+  const sections = gatingActive || posSettingsOnly
     ? []
     : buildSections({ pendingCount, lowStockCount, pendingUsersCount, canManageUsers, posEnabled: !!settings?.pos_is_active });
 
   const brand = (
     <Link
-      to={gatingActive ? '/admin/settings?tab=drive' : '/admin/dashboard'}
+      to={gatingActive ? '/admin/settings?tab=drive' : posSettingsOnly ? '/admin/settings?tab=pos' : '/admin/dashboard'}
       className="font-extrabold text-lg flex items-center gap-2"
     >
       <FontAwesomeIcon icon={faToolbox} />
@@ -342,11 +346,13 @@ export default function AdminSidebar() {
       <div
         className={`px-3 py-4 space-y-1 shrink-0 ${gatingActive ? 'border-b border-white/10' : 'border-t border-white/10'}`}
       >
-        <div ref={settingsAnchorRef} className="space-y-1">
-          <SidebarExpandableLink {...DOCUMENTATION_ITEM} onClick={onLinkClick} />
-          {canManageUsers && <SidebarExpandableLink {...settingsItem} onClick={onLinkClick} />}
-        </div>
-        {!gatingActive && (
+        {!posSettingsOnly && (
+          <div ref={settingsAnchorRef} className="space-y-1">
+            <SidebarExpandableLink {...DOCUMENTATION_ITEM} onClick={onLinkClick} />
+            {canManageUsers && <SidebarExpandableLink {...settingsItem} onClick={onLinkClick} />}
+          </div>
+        )}
+        {!gatingActive && !posSettingsOnly && (
           <button
             onClick={() => handleBackToHome(onLinkClick)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-white/10"

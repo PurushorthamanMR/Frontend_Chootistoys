@@ -88,7 +88,7 @@ function PosLayoutInner() {
             </NavLink>
             <NavLink to="/pos/daily-summary" className={navLinkClass}>
               <FontAwesomeIcon icon={faChartLine} />
-              <span className="hidden sm:inline">Daily Summary</span>
+              <span className="hidden sm:inline">Z-Report</span>
             </NavLink>
             <NavLink to="/pos/x-report" className={navLinkClass}>
               <FontAwesomeIcon icon={faReceipt} />

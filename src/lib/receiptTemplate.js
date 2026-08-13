@@ -33,8 +33,11 @@ const RECEIPT_STYLES = `
     .kv-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 1px 0; }
     .section-title { font-weight: 700; font-size: 12px; margin: 8px 0 2px; }
     .thank-you { margin-top: 10px; font-size: 12px; }
+    .dev-footer { margin-top: 8px; font-size: 9.5px; color: #777; }
   </style>
 `;
+
+const DEVELOPER_CONTACT = '0765947337';
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({
@@ -110,6 +113,7 @@ export function buildReceiptHtml({ sale, settings, formatPrice }) {
         : ''
     }
     <div class="center thank-you">Thank you!</div>
+    <div class="center dev-footer">POS developed by: ${DEVELOPER_CONTACT}</div>
   `;
 }
 
@@ -145,6 +149,7 @@ export function buildSalesHistoryHtml({ sales, settings, formatPrice, from, to }
     ${entries || '<div class="center muted">No sales in this range.</div>'}
     <div class="totals-row grand"><span>Total (${(sales || []).length})</span><span>${formatPrice(grandTotal)}</span></div>
     <div class="center thank-you">-- End of Report --</div>
+    <div class="center dev-footer">POS developed by: ${DEVELOPER_CONTACT}</div>
   `;
 }
 
@@ -162,7 +167,22 @@ export function buildZReportHtml({ report, staffSales, settings, formatPrice }) 
         <div class="kv-row"><span>Opened</span><span>${new Date(s.opened_at).toLocaleTimeString()}</span></div>
         <div class="kv-row"><span>Opening Cash</span><span>${formatPrice(s.opening_cash)}</span></div>
         ${s.closing_cash !== null ? `<div class="kv-row"><span>Closing Cash</span><span>${formatPrice(s.closing_cash)}</span></div>` : ''}
+        ${s.cash_out_total > 0 ? `<div class="kv-row"><span>Cash Out</span><span>-${formatPrice(s.cash_out_total)}</span></div>` : ''}
         ${s.expected_cash !== null ? `<div class="kv-row"><span>Expected Cash</span><span>${formatPrice(s.expected_cash)}</span></div>` : ''}
+        <hr class="rule" />
+      `
+    )
+    .join('');
+
+  const isRange = report?.from && report?.to && report.from !== report.to;
+  const dayRows = (report?.days || [])
+    .map(
+      (d) => `
+        <div class="kv-row bold"><span>${escapeHtml(d.date)}</span><span>${formatPrice(d.totalSales)}</span></div>
+        <div class="kv-row"><span>Transactions</span><span>${d.transactionCount}</span></div>
+        <div class="kv-row"><span>Discounts</span><span>${formatPrice(d.totalDiscount)}</span></div>
+        <div class="kv-row"><span>Voided / Returned</span><span>${d.voidedCount} / ${d.returnedCount}</span></div>
+        <div class="kv-row"><span>Cash Out</span><span>-${formatPrice(d.totalCashOut ?? 0)}</span></div>
         <hr class="rule" />
       `
     )
@@ -171,7 +191,7 @@ export function buildZReportHtml({ report, staffSales, settings, formatPrice }) 
   const staffRows = (staffSales || [])
     .map(
       (row) => `
-        <div class="kv-row bold"><span>${escapeHtml(row.staff_name)}</span><span>${formatPrice(row.totalSales)}</span></div>
+        <div class="kv-row bold"><span>${escapeHtml(row.staff_name)}${isRange ? ` (${escapeHtml(row.date)})` : ''}</span><span>${formatPrice(row.totalSales)}</span></div>
         <div class="kv-row"><span>Transactions</span><span>${row.transactionCount}</span></div>
         <div class="kv-row"><span>Discounts Given</span><span>${formatPrice(row.totalDiscount)}</span></div>
         <hr class="rule" />
@@ -184,7 +204,9 @@ export function buildZReportHtml({ report, staffSales, settings, formatPrice }) 
     ${headerBlock(settings)}
     <hr class="rule-solid" />
     <div class="center bold">Z-REPORT</div>
-    <div class="center muted">${escapeHtml(report?.date || '')}</div>
+    <div class="center muted">${
+      isRange ? `${escapeHtml(report.from)} to ${escapeHtml(report.to)}` : escapeHtml(report?.date || '')
+    }</div>
     <hr class="rule" />
     <div class="totals-row"><span>Total Sales</span><span>${formatPrice(report?.totalSales)}</span></div>
     <div class="totals-row"><span>Transactions</span><span>${report?.transactionCount}</span></div>
@@ -192,18 +214,25 @@ export function buildZReportHtml({ report, staffSales, settings, formatPrice }) 
     <div class="totals-row"><span>Voided Sales</span><span>${report?.voidedCount}</span></div>
     <div class="totals-row"><span>Returned Sales</span><span>${report?.returnedCount ?? 0}</span></div>
     <div class="totals-row"><span>Outstanding Advances</span><span>${formatPrice(report?.totalBalanceDue ?? 0)}</span></div>
+    <div class="totals-row"><span>Cash Out</span><span>-${formatPrice(report?.totalCashOut ?? 0)}</span></div>
     <hr class="rule" />
+    ${
+      isRange
+        ? `<div class="section-title">By Date</div>${dayRows || '<div class="muted">No sales in this range.</div>'}<hr class="rule" />`
+        : ''
+    }
     <div class="section-title">Payment Method Breakdown</div>
-    ${paymentBreakdownRows(report?.paymentBreakdown, formatPrice) || '<div class="muted">No payments on this date.</div>'}
+    ${paymentBreakdownRows(report?.paymentBreakdown, formatPrice) || '<div class="muted">No payments in this range.</div>'}
     <hr class="rule" />
     <div class="section-title">Shifts</div>
-    ${shiftRows || '<div class="muted">No shifts on this date.</div>'}
+    ${shiftRows || '<div class="muted">No shifts in this range.</div>'}
     ${
       staffSales
-        ? `<div class="section-title">Sales by Staff</div>${staffRows || '<div class="muted">No sales on this date.</div>'}`
+        ? `<div class="section-title">Sales by Staff</div>${staffRows || '<div class="muted">No sales in this range.</div>'}`
         : ''
     }
     <div class="center thank-you">-- End of Report --</div>
+    <div class="center dev-footer">POS developed by: ${DEVELOPER_CONTACT}</div>
   `;
 }
 
@@ -218,6 +247,7 @@ export function buildXReportHtml({ xReport, settings, formatPrice }) {
         <div class="totals-row"><span>Transactions</span><span>${row.transactionCount}</span></div>
         <div class="totals-row"><span>Discounts Given</span><span>${formatPrice(row.totalDiscount)}</span></div>
         <div class="totals-row"><span>Outstanding Advances</span><span>${formatPrice(row.totalBalanceDue)}</span></div>
+        <div class="totals-row"><span>Cash Out</span><span>-${formatPrice(row.cashOutTotal ?? 0)}</span></div>
         <div class="totals-row bold"><span>Expected Cash</span><span>${formatPrice(row.expectedCash)}</span></div>
         <div class="kv-row bold"><span>Payment Breakdown</span><span></span></div>
         ${paymentBreakdownRows(row.paymentBreakdown, formatPrice) || '<div class="muted">No payments yet.</div>'}
@@ -236,5 +266,6 @@ export function buildXReportHtml({ xReport, settings, formatPrice }) {
     <hr class="rule" />
     ${shiftBlocks || '<div class="muted">No open shifts.</div>'}
     <div class="center thank-you">-- End of Report --</div>
+    <div class="center dev-footer">POS developed by: ${DEVELOPER_CONTACT}</div>
   `;
 }

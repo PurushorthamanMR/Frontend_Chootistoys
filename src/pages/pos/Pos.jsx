@@ -29,10 +29,11 @@ import { buildReceiptHtml } from '../../lib/receiptTemplate';
 import { getPosProductsCache, setPosProductsCache, getPosCategoriesCache, setPosCategoriesCache } from '../../lib/posCache';
 import { posUnitPrice } from '../../lib/posPrice';
 
-function OpenShiftScreen({ onOpened }) {
+function OpenShiftScreen({ onOpened, isDesktop }) {
   const [openingCash, setOpeningCash] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [numPadOpen, setNumPadOpen] = useState(false);
 
   async function handleOpen(e) {
     e.preventDefault();
@@ -59,14 +60,19 @@ function OpenShiftScreen({ onOpened }) {
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
         <form onSubmit={handleOpen} className="space-y-3">
           <input
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
+            inputMode={isDesktop ? 'none' : 'decimal'}
+            readOnly={isDesktop}
             required
             placeholder="Opening cash amount"
             value={openingCash}
             onChange={(e) => setOpeningCash(e.target.value)}
-            className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2 text-center text-base"
+            onFocus={() => {
+              if (isDesktop) setNumPadOpen(true);
+            }}
+            className={`w-full border rounded-lg px-3 py-2 text-center text-base dark:bg-neutral-800 dark:text-gray-100 touch-manipulation ${
+              numPadOpen ? 'border-wa-green' : 'border-gray-300 dark:border-neutral-700'
+            }`}
           />
           <button
             type="submit"
@@ -77,16 +83,25 @@ function OpenShiftScreen({ onOpened }) {
           </button>
         </form>
       </div>
+      {isDesktop && numPadOpen && (
+        <NumPad
+          value={openingCash}
+          onChange={setOpeningCash}
+          onEnter={() => setNumPadOpen(false)}
+          onClose={() => setNumPadOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-function CloseShiftModal({ shift, open, onClose, onClosed }) {
+function CloseShiftModal({ shift, open, isDesktop, onClose, onClosed }) {
   const { formatPrice } = useCurrency();
   const [closingCash, setClosingCash] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [numPadOpen, setNumPadOpen] = useState(false);
 
   async function handleClose(e) {
     e.preventDefault();
@@ -105,6 +120,7 @@ function CloseShiftModal({ shift, open, onClose, onClosed }) {
   function handleDone() {
     setClosingCash('');
     setResult(null);
+    setNumPadOpen(false);
     onClosed();
   }
 
@@ -118,6 +134,11 @@ function CloseShiftModal({ shift, open, onClose, onClosed }) {
           <p className="text-gray-700 dark:text-gray-300">
             Counted cash: <span className="font-semibold">{formatPrice(result.closing_cash)}</span>
           </p>
+          {result.cash_out_total > 0 && (
+            <p className="text-gray-700 dark:text-gray-300">
+              Cash Out: <span className="font-semibold">-{formatPrice(result.cash_out_total)}</span>
+            </p>
+          )}
           <p
             className={`font-bold ${
               Number(result.closing_cash) === Number(result.expected_cash) ? 'text-wa-green-dark dark:text-wa-green' : 'text-red-600'
@@ -139,14 +160,19 @@ function CloseShiftModal({ shift, open, onClose, onClosed }) {
             Count the cash drawer and enter the total below.
           </p>
           <input
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
+            inputMode={isDesktop ? 'none' : 'decimal'}
+            readOnly={isDesktop}
             required
             placeholder="Counted cash amount"
             value={closingCash}
             onChange={(e) => setClosingCash(e.target.value)}
-            className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2 text-base"
+            onFocus={() => {
+              if (isDesktop) setNumPadOpen(true);
+            }}
+            className={`w-full border rounded-lg px-3 py-2 text-base dark:bg-neutral-800 dark:text-gray-100 touch-manipulation ${
+              numPadOpen ? 'border-wa-green' : 'border-gray-300 dark:border-neutral-700'
+            }`}
           />
           <button
             type="submit"
@@ -156,6 +182,151 @@ function CloseShiftModal({ shift, open, onClose, onClosed }) {
             {saving ? 'Closing...' : 'Close Shift'}
           </button>
         </form>
+      )}
+      {isDesktop && numPadOpen && !result && (
+        <NumPad
+          value={closingCash}
+          onChange={setClosingCash}
+          onEnter={() => setNumPadOpen(false)}
+          onClose={() => setNumPadOpen(false)}
+        />
+      )}
+    </Modal>
+  );
+}
+
+const CASH_OUT_REASONS = ['Salary', 'Delivery', 'Collection', 'Lunch', 'Other'];
+
+function OutCashModal({ shift, open, isDesktop, onClose, onDone }) {
+  const [reason, setReason] = useState('Salary');
+  const [note, setNote] = useState('');
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [numPadOpen, setNumPadOpen] = useState(false);
+  const [noteKeyboardOpen, setNoteKeyboardOpen] = useState(false);
+
+  function reset() {
+    setReason('Salary');
+    setNote('');
+    setAmount('');
+    setError('');
+    setNumPadOpen(false);
+    setNoteKeyboardOpen(false);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (reason === 'Other' && !note.trim()) {
+      setError('Enter a note for "Other"');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data } = await api.post(`/pos/shifts/${shift.id}/cash-out`, {
+        amount: amount || 0,
+        reason,
+        note: note.trim() || undefined,
+      });
+      reset();
+      onDone(data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to record cash out');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+      title="Out Cash"
+    >
+      <div className={isDesktop ? 'max-h-[calc(100vh_-_27rem)] overflow-y-auto' : ''}>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <p className="text-sm text-gray-500 dark:text-gray-400">Take cash out of the till for an expense.</p>
+          <div className="grid grid-cols-3 gap-2">
+            {CASH_OUT_REASONS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setReason(r)}
+                className={`text-sm font-semibold py-2.5 rounded-lg border touch-manipulation ${
+                  reason === r
+                    ? 'bg-wa-green text-white border-wa-green'
+                    : 'border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            inputMode={isDesktop ? 'none' : 'text'}
+            readOnly={isDesktop}
+            required={reason === 'Other'}
+            placeholder={reason === 'Other' ? 'Reason detail (required)' : 'Note (optional)'}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            onFocus={() => {
+              if (isDesktop) {
+                setNumPadOpen(false);
+                setNoteKeyboardOpen(true);
+              }
+            }}
+            className={`w-full border rounded-lg px-3 py-2 text-base dark:bg-neutral-800 dark:text-gray-100 touch-manipulation ${
+              noteKeyboardOpen ? 'border-wa-green' : 'border-gray-300 dark:border-neutral-700'
+            }`}
+          />
+          <input
+            type="text"
+            inputMode={isDesktop ? 'none' : 'decimal'}
+            readOnly={isDesktop}
+            required
+            placeholder="Amount to take out"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            onFocus={() => {
+              if (isDesktop) {
+                setNoteKeyboardOpen(false);
+                setNumPadOpen(true);
+              }
+            }}
+            className={`w-full border rounded-lg px-3 py-2 text-base dark:bg-neutral-800 dark:text-gray-100 touch-manipulation ${
+              numPadOpen ? 'border-wa-green' : 'border-gray-300 dark:border-neutral-700'
+            }`}
+          />
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg"
+          >
+            {saving ? 'Recording...' : 'Take Out'}
+          </button>
+        </form>
+      </div>
+      {isDesktop && numPadOpen && (
+        <NumPad
+          value={amount}
+          onChange={setAmount}
+          onEnter={() => setNumPadOpen(false)}
+          onClose={() => setNumPadOpen(false)}
+        />
+      )}
+      {isDesktop && noteKeyboardOpen && (
+        <OnScreenKeyboard
+          value={note}
+          onChange={setNote}
+          onEnter={() => setNoteKeyboardOpen(false)}
+          onClose={() => setNoteKeyboardOpen(false)}
+        />
       )}
     </Modal>
   );
@@ -304,6 +475,7 @@ export default function Pos() {
 
   const [shift, setShift] = useState(undefined); // undefined = loading, null = none open
   const [showCloseShift, setShowCloseShift] = useState(false);
+  const [showOutCash, setShowOutCash] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [categoryLetter, setCategoryLetter] = useState('');
@@ -700,7 +872,7 @@ export default function Pos() {
   }
 
   if (shift === undefined) return <LoadingBlock className="py-16" />;
-  if (!shift) return <OpenShiftScreen onOpened={setShift} />;
+  if (!shift) return <OpenShiftScreen onOpened={setShift} isDesktop={isDesktop} />;
 
   return (
     <div
@@ -746,6 +918,12 @@ export default function Pos() {
             <FontAwesomeIcon icon={faClockRotateLeft} />
             <span className="hidden sm:inline">Held</span>
             <span>({holds.length})</span>
+          </button>
+          <button
+            onClick={() => setShowOutCash(true)}
+            className="shrink-0 text-xs sm:text-sm font-semibold px-2 sm:px-3.5 py-1.5 sm:py-2.5 rounded-full border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-gray-300 touch-manipulation whitespace-nowrap"
+          >
+            Out Cash
           </button>
           <button
             onClick={() => setShowCloseShift(true)}
@@ -946,7 +1124,7 @@ export default function Pos() {
           {cart.length === 0 ? (
             <p className="text-sm text-gray-400 py-6 text-center">No items yet. Tap an item to add it.</p>
           ) : (
-            <div className="space-y-1 max-h-72 overflow-y-auto mb-3 -mx-1">
+            <div className="space-y-1 max-h-28 overflow-y-auto mb-3 -mx-1">
               {cart.map((item) => (
                 <div
                   key={item.product_id}
@@ -1186,10 +1364,21 @@ export default function Pos() {
       <CloseShiftModal
         shift={shift}
         open={showCloseShift}
+        isDesktop={isDesktop}
         onClose={() => setShowCloseShift(false)}
         onClosed={() => {
           setShowCloseShift(false);
           setShift(null);
+        }}
+      />
+      <OutCashModal
+        shift={shift}
+        open={showOutCash}
+        isDesktop={isDesktop}
+        onClose={() => setShowOutCash(false)}
+        onDone={(movement) => {
+          setShowOutCash(false);
+          showToast('success', `${formatPrice(movement.amount)} taken out for ${movement.reason}`, 3000);
         }}
       />
       <HeldOrdersModal

@@ -11,7 +11,9 @@ export function PrivateRoute({ children }) {
 export function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (!user || !['Admin', 'SuperAdmin'].includes(user.role)) return <Navigate to="/login" replace />;
+  // PosSettings (env-only login) is admitted here, then confined to
+  // Settings -> Point of Sale by PosSettingsRouteGate inside AdminLayout.
+  if (!user || !['Admin', 'SuperAdmin', 'PosSettings'].includes(user.role)) return <Navigate to="/login" replace />;
   return children;
 }
 

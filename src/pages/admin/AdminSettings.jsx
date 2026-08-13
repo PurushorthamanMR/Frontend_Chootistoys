@@ -47,8 +47,14 @@ export const SETTINGS_SECTIONS = [
 // Database Export and Point of Sale are SuperAdmin-only, so they're appended
 // conditionally rather than living in the static list - both this page and
 // AdminSidebar's Settings sub-nav call this so they never fall out of sync.
-export function getSettingsSections(isSuperAdmin) {
-  return isSuperAdmin
+// The env-only PosSettings login (Backend/.env POS_USERNAME/POS_PASSWORD) is
+// scoped to just the Point of Sale tab - it gets a single-entry list instead
+// of the full section set.
+export function getSettingsSections(role) {
+  if (role === 'PosSettings') {
+    return [{ key: 'pos', label: 'Point of Sale', icon: faCashRegister }];
+  }
+  return role === 'SuperAdmin'
     ? [
         ...SETTINGS_SECTIONS,
         { key: 'pos', label: 'Point of Sale', icon: faCashRegister },
@@ -173,13 +179,14 @@ function FloatingSaveCancel({ saving, disabled, onCancel, formId }) {
 export default function AdminSettings() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SuperAdmin';
-  const sections = getSettingsSections(isSuperAdmin);
+  const isPosSettings = user?.role === 'PosSettings';
+  const sections = getSettingsSections(user?.role);
   const { settings, refreshSettings } = useSettings();
   const { refreshSetupStatus } = useSetupStatus();
   const { setHasUnsavedChanges } = useUnsavedChanges();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSection = searchParams.get('tab');
-  const activeSection = sections.some((s) => s.key === requestedSection) ? requestedSection : 'general';
+  const activeSection = sections.some((s) => s.key === requestedSection) ? requestedSection : sections[0]?.key;
   const [exportingStructure, setExportingStructure] = useState(false);
   const [exportingData, setExportingData] = useState(false);
   const [exportingSettings, setExportingSettings] = useState(false);
@@ -315,7 +322,9 @@ export default function AdminSettings() {
     try {
       await api.put('/settings', fields);
       await refreshSettings();
-      await refreshSetupStatus();
+      // Setup-status is Admin/SuperAdmin only (PosSettings can't reach it) -
+      // best-effort refresh that must never fail the save itself.
+      await refreshSetupStatus().catch(() => {});
       setEditing(false);
       successAlert('Settings saved', 'The changes have been applied across the site.');
       return true;
@@ -1118,7 +1127,7 @@ export default function AdminSettings() {
             </SectionCard>
           )}
 
-          {activeSection === 'pos' && isSuperAdmin && (
+          {activeSection === 'pos' && (isSuperAdmin || isPosSettings) && (
             <form id="pos-form" onSubmit={handlePosSubmit}>
               <SectionCard
                 title="Point of Sale"

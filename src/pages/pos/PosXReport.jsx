@@ -47,7 +47,6 @@ export default function PosXReport() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">X-Report</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Live snapshot of the current open shift(s) - not a shift close.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -107,6 +106,7 @@ export default function PosXReport() {
                 <StatCard label="Transactions" value={row.transactionCount} />
                 <StatCard label="Discounts Given" value={formatPrice(row.totalDiscount)} />
                 <StatCard label="Outstanding Advances" value={formatPrice(row.totalBalanceDue)} />
+                <StatCard label="Cash Out" value={formatPrice(row.cashOutTotal ?? 0)} />
                 <StatCard label="Expected Cash" value={formatPrice(row.expectedCash)} />
                 <StatCard label="Opening Cash" value={formatPrice(row.shift.opening_cash)} />
               </div>

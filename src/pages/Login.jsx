@@ -40,6 +40,8 @@ export default function Login() {
         navigate(setupComplete ? '/admin' : '/admin/settings?tab=drive');
       } else if (user.role === 'SuperAdmin') {
         navigate('/admin');
+      } else if (user.role === 'PosSettings') {
+        navigate('/admin/settings?tab=pos');
       } else if (user.role === 'Staff') {
         navigate('/pos');
       } else {
