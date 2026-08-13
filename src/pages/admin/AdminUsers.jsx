@@ -10,6 +10,9 @@ import { useDuplicateCheck } from '../../lib/useDuplicateCheck';
 import { isValidEmail } from '../../lib/validators';
 import UserForm from './forms/UserForm';
 import LoadingBlock from '../../components/LoadingBlock';
+import OtpInputModal from '../../components/OtpInputModal';
+import FieldStatus from '../../components/FieldStatus';
+import { successAlert } from '../../lib/alert';
 import { useSettings } from '../../context/SettingsContext';
 
 const ROLE_LABELS = {
@@ -60,6 +63,7 @@ export default function AdminUsers() {
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', shop_name: '', city: '' });
   const [editError, setEditError] = useState('');
   const [addingStaff, setAddingStaff] = useState(false);
+  const [staffStep, setStaffStep] = useState('form');
   const [staffForm, setStaffForm] = useState(EMPTY_STAFF_FORM);
   const [staffError, setStaffError] = useState('');
   const [savingStaff, setSavingStaff] = useState(false);
@@ -72,6 +76,16 @@ export default function AdminUsers() {
   const phoneStatus = useDuplicateCheck('/users/check', editForm.phone, {
     extraParams: { field: 'phone', excludeId: editingUser?.id },
     skip: !editForm.phone,
+  });
+
+  const staffEmailInvalid = !!staffForm.email && !isValidEmail(staffForm.email);
+  const staffEmailStatus = useDuplicateCheck('/users/check', staffForm.email, {
+    extraParams: { field: 'email' },
+    skip: !staffForm.email || staffEmailInvalid,
+  });
+  const staffPhoneStatus = useDuplicateCheck('/users/check', staffForm.phone, {
+    extraParams: { field: 'phone' },
+    skip: !staffForm.phone,
   });
 
   function load() {
@@ -134,22 +148,45 @@ export default function AdminUsers() {
   function openAddStaff() {
     setStaffForm(EMPTY_STAFF_FORM);
     setStaffError('');
+    setStaffStep('form');
     setAddingStaff(true);
   }
 
   async function handleAddStaffSubmit(e) {
     e.preventDefault();
     setStaffError('');
+    if (staffEmailInvalid) {
+      setStaffError('Enter a valid email address');
+      return;
+    }
+    if (staffEmailStatus === 'duplicate') {
+      setStaffError('That email is already in use');
+      return;
+    }
+    if (staffPhoneStatus === 'duplicate') {
+      setStaffError('That phone number is already in use');
+      return;
+    }
     setSavingStaff(true);
     try {
-      await api.post('/users/staff', staffForm);
-      setAddingStaff(false);
-      if (statusTab === 'approved') load();
+      await api.post('/users/staff/send-otp', staffForm);
+      setStaffStep('otp');
     } catch (err) {
-      setStaffError(err.response?.data?.message || 'Failed to create staff account');
+      setStaffError(err.response?.data?.message || 'Failed to send verification code');
     } finally {
       setSavingStaff(false);
     }
+  }
+
+  async function verifyAddStaffOtp(code) {
+    const { data } = await api.post('/users/staff/verify-otp', { email: staffForm.email, code });
+    return data;
+  }
+
+  function handleStaffVerified() {
+    setAddingStaff(false);
+    successAlert('Staff account created', 'A confirmation email has been sent to the staff member.');
+    if (statusTab === 'approved') load();
   }
 
   if (loading) return <LoadingBlock className="py-16" />;
@@ -174,63 +211,84 @@ export default function AdminUsers() {
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
       <Modal open={addingStaff} onClose={() => setAddingStaff(false)} title="Add Staff (POS cashier)">
-        <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 gap-3">
-          {staffError && <p className="text-red-600 text-sm">{staffError}</p>}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Name</label>
-            <input
-              required
-              value={staffForm.name}
-              onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
-              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Email</label>
-            <input
-              type="email"
-              required
-              value={staffForm.email}
-              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Phone (optional)</label>
-            <input
-              value={staffForm.phone}
-              onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
-              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Password</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={staffForm.password}
-              onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
-              className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={savingStaff}
-              className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-md"
-            >
-              {savingStaff ? 'Creating...' : 'Create Staff Account'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAddingStaff(false)}
-              className="px-4 py-2 rounded-md border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+        {staffStep === 'otp' ? (
+          <OtpInputModal
+            identifier={staffForm.email}
+            title="Verify staff email"
+            onVerify={verifyAddStaffOtp}
+            onResend={() => api.post('/users/staff/send-otp', staffForm)}
+            onVerified={handleStaffVerified}
+            onBack={() => setStaffStep('form')}
+          />
+        ) : (
+          <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 gap-3">
+            {staffError && <p className="text-red-600 text-sm">{staffError}</p>}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Name</label>
+              <input
+                required
+                value={staffForm.name}
+                onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+                className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Email</label>
+              <input
+                type="email"
+                required
+                value={staffForm.email}
+                onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+              />
+              <FieldStatus
+                status={staffEmailStatus}
+                duplicateMessage="That email is already in use"
+                invalid={staffEmailInvalid}
+                invalidMessage="Enter a valid email address"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                A verification code will be sent to this email before the account is created.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Phone (optional)</label>
+              <input
+                value={staffForm.phone}
+                onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+                className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+              />
+              <FieldStatus status={staffPhoneStatus} duplicateMessage="That phone number is already in use" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Password</label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={staffForm.password}
+                onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+                className="w-full border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={savingStaff || staffEmailInvalid || staffEmailStatus === 'duplicate' || staffPhoneStatus === 'duplicate'}
+                className="bg-wa-green hover:bg-wa-green-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 py-2 rounded-md"
+              >
+                {savingStaff ? 'Sending code...' : 'Send Verification Code'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddingStaff(false)}
+                className="px-4 py-2 rounded-md border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <StatusTabs status={statusTab} onChange={setStatusTab} />
