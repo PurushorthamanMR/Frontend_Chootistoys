@@ -9,7 +9,6 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { buildZReportHtml } from '../../lib/receiptTemplate';
 import { printHtml } from '../../lib/printHtml';
-import { exportZReportPdf, exportZReportExcel } from '../../lib/posExport';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -105,7 +104,10 @@ export default function PosDailySummary() {
           <button
             type="button"
             disabled={!report}
-            onClick={() => exportZReportPdf({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined, settings })}
+            onClick={async () => {
+              const { exportZReportPdf } = await import('../../lib/posExportPdf');
+              exportZReportPdf({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined, settings });
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >
             <FontAwesomeIcon icon={faFilePdf} />
@@ -114,7 +116,10 @@ export default function PosDailySummary() {
           <button
             type="button"
             disabled={!report}
-            onClick={() => exportZReportExcel({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined })}
+            onClick={async () => {
+              const { exportZReportExcel } = await import('../../lib/posExportExcel');
+              exportZReportExcel({ report, staffSales: canSeeStaffBreakdown ? staffSales : undefined });
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >
             <FontAwesomeIcon icon={faFileExcel} />

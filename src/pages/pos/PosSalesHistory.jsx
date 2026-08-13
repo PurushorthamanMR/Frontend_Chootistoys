@@ -13,7 +13,6 @@ import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { confirmAction, successAlert, errorAlert } from '../../lib/alert';
 import { buildReceiptHtml, buildSalesHistoryHtml } from '../../lib/receiptTemplate';
 import { printHtml } from '../../lib/printHtml';
-import { exportSalesPdf, exportSalesExcel } from '../../lib/posExport';
 
 const PAYMENT_METHODS = ['cash', 'card', 'cheque'];
 
@@ -296,7 +295,10 @@ export default function PosSalesHistory() {
           </button>
           <button
             type="button"
-            onClick={() => exportSalesPdf(sales, settings)}
+            onClick={async () => {
+              const { exportSalesPdf } = await import('../../lib/posExportPdf');
+              exportSalesPdf(sales, settings);
+            }}
             disabled={sales.length === 0}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >
@@ -305,7 +307,10 @@ export default function PosSalesHistory() {
           </button>
           <button
             type="button"
-            onClick={() => exportSalesExcel(sales)}
+            onClick={async () => {
+              const { exportSalesExcel } = await import('../../lib/posExportExcel');
+              exportSalesExcel(sales);
+            }}
             disabled={sales.length === 0}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >

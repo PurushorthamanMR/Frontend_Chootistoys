@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation, useNavigate, matchPath } from 'react-router-dom';
-import { useLayoutEffect, useRef } from 'react';
+import { lazy, Suspense, useLayoutEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import CustomScrollbar from './components/CustomScrollbar';
@@ -8,66 +8,72 @@ import FloatingOrderBar from './components/FloatingOrderBar';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
 import MobileFooterNav from './components/MobileFooterNav';
 import AuthLayout from './components/AuthLayout';
-import Home from './pages/Home';
-import ProductList from './pages/ProductList';
-import Categories from './pages/Categories';
-import Blogs from './pages/Blogs';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Login from './pages/Login';
-import SellerLogin from './pages/SellerLogin';
-import Register from './pages/Register';
-import ApplySeller from './pages/ApplySeller';
-import ForgotPassword from './pages/ForgotPassword';
-import MyOrders from './pages/MyOrders';
-import Profile from './pages/Profile';
-import Wishlist from './pages/Wishlist';
-import WholesaleView from './pages/WholesaleView';
-import TermsConditions from './pages/TermsConditions';
-import ReturnPolicy from './pages/ReturnPolicy';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import AboutUs from './pages/AboutUs';
+import LoadingBlock from './components/LoadingBlock';
 import { PrivateRoute, AdminRoute, PosRoute } from './components/RouteGuards';
-import PosLayout from './pages/pos/PosLayout';
-import Pos from './pages/pos/Pos';
-import PosSalesHistory from './pages/pos/PosSalesHistory';
-import PosDailySummary from './pages/pos/PosDailySummary';
-import PosXReport from './pages/pos/PosXReport';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminProducts from './pages/admin/AdminProducts';
-import AdminProductDetail from './pages/admin/AdminProductDetail';
-import AdminProductEdit from './pages/admin/AdminProductEdit';
-import AdminCategories from './pages/admin/AdminCategories';
-import AdminCategoryDetail from './pages/admin/AdminCategoryDetail';
-import AdminCategoryEdit from './pages/admin/AdminCategoryEdit';
-import AdminSubcategories from './pages/admin/AdminSubcategories';
-import AdminSubcategoryDetail from './pages/admin/AdminSubcategoryDetail';
-import AdminSubcategoryEdit from './pages/admin/AdminSubcategoryEdit';
-import AdminOrders from './pages/admin/AdminOrders';
-import AdminOrderDetail from './pages/admin/AdminOrderDetail';
-import AdminOrderEdit from './pages/admin/AdminOrderEdit';
-import AdminLowStock from './pages/admin/AdminLowStock';
-import AdminLowStockEdit from './pages/admin/AdminLowStockEdit';
-import AdminBlogs from './pages/admin/AdminBlogs';
-import AdminBlogDetail from './pages/admin/AdminBlogDetail';
-import AdminBlogEdit from './pages/admin/AdminBlogEdit';
-import AdminOffers from './pages/admin/AdminOffers';
-import AdminOfferDetail from './pages/admin/AdminOfferDetail';
-import AdminOfferEdit from './pages/admin/AdminOfferEdit';
-import AdminBanners from './pages/admin/AdminBanners';
-import AdminBannerDetail from './pages/admin/AdminBannerDetail';
-import AdminBannerEdit from './pages/admin/AdminBannerEdit';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminUserDetail from './pages/admin/AdminUserDetail';
-import AdminUserEdit from './pages/admin/AdminUserEdit';
-import AdminCustomers from './pages/admin/AdminCustomers';
-import AdminCustomerDetail from './pages/admin/AdminCustomerDetail';
-import AdminCustomerEdit from './pages/admin/AdminCustomerEdit';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminDocumentation from './pages/admin/AdminDocumentation';
-import PageNotFound from './pages/PageNotFound';
+
+// Route-level code splitting - each lazy() call becomes its own chunk, so a
+// customer visiting the storefront never downloads the Admin or POS bundles
+// (and vice versa). Keeps the main bundle under Vite's 500kB warning without
+// hand-rolled manualChunks tuning.
+const Home = lazy(() => import('./pages/Home'));
+const ProductList = lazy(() => import('./pages/ProductList'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Blogs = lazy(() => import('./pages/Blogs'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Login = lazy(() => import('./pages/Login'));
+const SellerLogin = lazy(() => import('./pages/SellerLogin'));
+const Register = lazy(() => import('./pages/Register'));
+const ApplySeller = lazy(() => import('./pages/ApplySeller'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const MyOrders = lazy(() => import('./pages/MyOrders'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const WholesaleView = lazy(() => import('./pages/WholesaleView'));
+const TermsConditions = lazy(() => import('./pages/TermsConditions'));
+const ReturnPolicy = lazy(() => import('./pages/ReturnPolicy'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const PosLayout = lazy(() => import('./pages/pos/PosLayout'));
+const Pos = lazy(() => import('./pages/pos/Pos'));
+const PosSalesHistory = lazy(() => import('./pages/pos/PosSalesHistory'));
+const PosDailySummary = lazy(() => import('./pages/pos/PosDailySummary'));
+const PosXReport = lazy(() => import('./pages/pos/PosXReport'));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminProductDetail = lazy(() => import('./pages/admin/AdminProductDetail'));
+const AdminProductEdit = lazy(() => import('./pages/admin/AdminProductEdit'));
+const AdminCategories = lazy(() => import('./pages/admin/AdminCategories'));
+const AdminCategoryDetail = lazy(() => import('./pages/admin/AdminCategoryDetail'));
+const AdminCategoryEdit = lazy(() => import('./pages/admin/AdminCategoryEdit'));
+const AdminSubcategories = lazy(() => import('./pages/admin/AdminSubcategories'));
+const AdminSubcategoryDetail = lazy(() => import('./pages/admin/AdminSubcategoryDetail'));
+const AdminSubcategoryEdit = lazy(() => import('./pages/admin/AdminSubcategoryEdit'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminOrderDetail = lazy(() => import('./pages/admin/AdminOrderDetail'));
+const AdminOrderEdit = lazy(() => import('./pages/admin/AdminOrderEdit'));
+const AdminLowStock = lazy(() => import('./pages/admin/AdminLowStock'));
+const AdminLowStockEdit = lazy(() => import('./pages/admin/AdminLowStockEdit'));
+const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
+const AdminBlogDetail = lazy(() => import('./pages/admin/AdminBlogDetail'));
+const AdminBlogEdit = lazy(() => import('./pages/admin/AdminBlogEdit'));
+const AdminOffers = lazy(() => import('./pages/admin/AdminOffers'));
+const AdminOfferDetail = lazy(() => import('./pages/admin/AdminOfferDetail'));
+const AdminOfferEdit = lazy(() => import('./pages/admin/AdminOfferEdit'));
+const AdminBanners = lazy(() => import('./pages/admin/AdminBanners'));
+const AdminBannerDetail = lazy(() => import('./pages/admin/AdminBannerDetail'));
+const AdminBannerEdit = lazy(() => import('./pages/admin/AdminBannerEdit'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminUserDetail = lazy(() => import('./pages/admin/AdminUserDetail'));
+const AdminUserEdit = lazy(() => import('./pages/admin/AdminUserEdit'));
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'));
+const AdminCustomerDetail = lazy(() => import('./pages/admin/AdminCustomerDetail'));
+const AdminCustomerEdit = lazy(() => import('./pages/admin/AdminCustomerEdit'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminDocumentation = lazy(() => import('./pages/admin/AdminDocumentation'));
+const PageNotFound = lazy(() => import('./pages/PageNotFound'));
 
 // Every real route this app serves. Used only to tell "a valid page loaded
 // directly via URL/refresh/bookmark" apart from "an unknown/typo URL" - the
@@ -139,6 +145,7 @@ function App() {
   // otherwise the drawer's height resolves against the animated wrapper's
   // content height instead of the real viewport, breaking its scrolling.
   const routesElement = (
+    <Suspense fallback={<LoadingBlock className="py-24" />}>
     <Routes location={location}>
       <Route path="/" element={<Home />} />
               <Route path="/products" element={<ProductList />} />
@@ -247,6 +254,7 @@ function App() {
               <Route path="/wholesale-view/:token" element={<WholesaleView />} />
               <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 
   return (

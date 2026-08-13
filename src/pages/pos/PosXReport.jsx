@@ -8,7 +8,6 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { usePosReduceSale } from '../../context/PosReduceSaleContext';
 import { buildXReportHtml } from '../../lib/receiptTemplate';
 import { printHtml } from '../../lib/printHtml';
-import { exportXReportPdf, exportXReportExcel } from '../../lib/posExport';
 
 function StatCard({ label, value }) {
   return (
@@ -69,7 +68,10 @@ export default function PosXReport() {
           <button
             type="button"
             disabled={!xReport}
-            onClick={() => exportXReportPdf({ xReport, settings })}
+            onClick={async () => {
+              const { exportXReportPdf } = await import('../../lib/posExportPdf');
+              exportXReportPdf({ xReport, settings });
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >
             <FontAwesomeIcon icon={faFilePdf} />
@@ -78,7 +80,10 @@ export default function PosXReport() {
           <button
             type="button"
             disabled={!xReport}
-            onClick={() => exportXReportExcel({ xReport })}
+            onClick={async () => {
+              const { exportXReportExcel } = await import('../../lib/posExportExcel');
+              exportXReportExcel({ xReport });
+            }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 disabled:opacity-40"
           >
             <FontAwesomeIcon icon={faFileExcel} />
